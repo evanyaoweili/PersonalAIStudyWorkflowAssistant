@@ -9,7 +9,7 @@ study materials and plan your study time.
 - **Study planning** — build a day-by-day study schedule from a list of tasks,
   deadlines, and available hours per day.
 - Built as a [LangGraph](https://github.com/langchain-ai/langgraph) ReAct agent
-  with Claude as the underlying model, exposing the above as tools.
+  with OpenAI as the underlying model, exposing the above as tools.
 
 ## Project layout
 
@@ -35,7 +35,7 @@ data/materials/ drop your study materials (PDFs, .txt, .md) here
    pip install -e ".[dev]"
    ```
 
-2. Copy `.env.example` to `.env` and fill in your Anthropic API key:
+2. Copy `.env.example` to `.env` and fill in your OpenAI API key:
 
    ```bash
    cp .env.example .env

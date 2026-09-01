@@ -1,6 +1,6 @@
-from langchain_anthropic import ChatAnthropic
 from langchain_chroma import Chroma
 from langchain_core.prompts import ChatPromptTemplate
+from langchain_openai import ChatOpenAI
 
 from study_assistant.config import settings
 
@@ -21,7 +21,7 @@ def answer_question(question: str, store: Chroma, k: int = 4) -> str:
     results = store.similarity_search(question, k=k)
     context = "\n\n".join(doc.page_content for doc in results)
 
-    llm = ChatAnthropic(model=settings.model_name, api_key=settings.anthropic_api_key)
+    llm = ChatOpenAI(model=settings.model_name, api_key=settings.openai_api_key)
     chain = QA_PROMPT | llm
     response = chain.invoke({"context": context, "question": question})
     return response.content

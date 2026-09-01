@@ -1,4 +1,4 @@
-from langchain_anthropic import ChatAnthropic
+from langchain_openai import ChatOpenAI
 from langgraph.graph.state import CompiledStateGraph
 from langgraph.prebuilt import create_react_agent
 
@@ -14,5 +14,5 @@ SYSTEM_PROMPT = (
 
 
 def build_agent() -> CompiledStateGraph:
-    llm = ChatAnthropic(model=settings.model_name, api_key=settings.anthropic_api_key)
+    llm = ChatOpenAI(model=settings.model_name, api_key=settings.openai_api_key)
     return create_react_agent(llm, tools=ALL_TOOLS, prompt=SYSTEM_PROMPT)

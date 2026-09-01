@@ -5,13 +5,11 @@ description = "Personal AI Study Workflow Assistant - CMU AI Agent Course Capsto
 requires-python = ">=3.11"
 dependencies = [
     "langchain>=0.3",
-    "langchain-anthropic>=0.3",
+    "langchain-openai>=0.2",
     "langchain-community>=0.3",
     "langgraph>=0.2",
     "langchain-text-splitters>=0.3",
     "langchain-chroma>=0.1",
-    "langchain-huggingface>=0.1",
-    "sentence-transformers>=3.0",
     "chromadb>=0.5",
     "pypdf>=5.0",
     "python-dotenv>=1.0",
