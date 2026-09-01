@@ -1,0 +1,16 @@
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+.env
+
+# Vector store / ingested data
+data/chroma/
+data/materials/*
+!data/materials/.gitkeep
+
+.pytest_cache/
+.ruff_cache/
+dist/
+build/
