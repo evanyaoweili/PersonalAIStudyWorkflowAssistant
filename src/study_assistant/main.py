@@ -1,5 +1,7 @@
 import argparse
+import logging
 
+from langchain_core.globals import set_debug
 from langchain_core.messages import HumanMessage
 
 from study_assistant.agents.graph import build_agent
@@ -29,6 +31,11 @@ def cmd_chat(_args: argparse.Namespace) -> None:
 
 def main() -> None:
     parser = argparse.ArgumentParser(prog="study-assistant")
+    parser.add_argument(
+        "--debug",
+        action="store_true",
+        help="Enable verbose debug logging (Python logging + LangChain chain/tool-call tracing).",
+    )
     subparsers = parser.add_subparsers(required=True)
 
     ingest_parser = subparsers.add_parser("ingest", help="Ingest study materials into the vector store")
@@ -38,6 +45,11 @@ def main() -> None:
     chat_parser.set_defaults(func=cmd_chat)
 
     args = parser.parse_args()
+
+    if args.debug:
+        logging.basicConfig(level=logging.DEBUG)
+        set_debug(True)
+
     args.func(args)
 
 

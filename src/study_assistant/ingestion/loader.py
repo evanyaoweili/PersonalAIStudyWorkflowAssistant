@@ -1,3 +1,4 @@
+from functools import partial
 from pathlib import Path
 
 from langchain_community.document_loaders import PyPDFLoader, TextLoader
@@ -6,8 +7,8 @@ from langchain_text_splitters import RecursiveCharacterTextSplitter
 
 LOADERS = {
     ".pdf": PyPDFLoader,
-    ".txt": TextLoader,
-    ".md": TextLoader,
+    ".txt": partial(TextLoader, encoding="utf-8", autodetect_encoding=True),
+    ".md": partial(TextLoader, encoding="utf-8", autodetect_encoding=True),
 }
 
 

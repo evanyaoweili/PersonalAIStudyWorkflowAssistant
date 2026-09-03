@@ -1,0 +1,89 @@
+{
+  "course": "Agentic AI Program: Building Autonomous Systems for Real-World Applications",
+  "term": "Fall 2026",
+
+  "_comment": "Teacher/Student/Course data. The LLM has NEVER seen this file. It can only reach it through an MCP tool call. That is the entire point of the tools demo. The data has deliberate patterns in it -- one student declining, one improving, one erratic, one quietly failing -- so the interesting question is never 'what is the number' but 'what does the number mean', which is the part the LLM is actually for.",
+
+  "assignments": [
+    {
+      "type": "Required",
+      "assignment": "Capstone Checkpoint 1.1: Capstone Project Scoping and Initial Agent Design",
+      "points": 1,
+      "release_date": "17-Jul-26",
+      "due_date": "27-Jul-26"
+    },
+    {
+      "type": "Required",
+      "assignment": "Capstone Checkpoint 2.1: Capstone Agent Design Refinement",
+      "points": 1,
+      "release_date": "24-Jul-26",
+      "due_date": "3-Aug-26"
+    },
+    {
+      "type": "Required",
+      "assignment": "Capstone Checkpoint 3.1: RAG and Retrieval Design Integration",
+      "points": 1,
+      "release_date": "31-Jul-26",
+      "due_date": "10-Aug-26"
+    },
+    {
+      "type": "Required",
+      "assignment": "Capstone Checkpoint 4.1: Tree-of-Thought Integration Plan",
+      "points": 1,
+      "release_date": "7-Aug-26",
+      "due_date": "17-Aug-26"
+    },
+    {
+      "type": "Required",
+      "assignment": "Capstone Checkpoint 5.1: Multi-Agent Architecture and Coordination Plan",
+      "points": 1,
+      "release_date": "14-Aug-26",
+      "due_date": "24-Aug-26"
+    },
+    {
+      "type": "Required",
+      "assignment": "Capstone Checkpoint 6.1: Safety Guardrails and Human Intervention Plan",
+      "points": 1,
+      "release_date": "21-Aug-26",
+      "due_date": "31-Aug-26"
+    },
+    {
+      "type": "Required",
+      "assignment": "Capstone Assignment 7.1: Final Capstone Project Report and Presentation",
+      "points": 1,
+      "release_date": "28-Aug-26",
+      "due_date": "7-Sep-26"
+    }
+  ],
+
+ 
+
+  "students": {
+    "Doerte Doepfer": {
+      "introduction": "Doerte Doepfer, with goal to expand knowledge about AI Agents for health and agriculture. Based in Wisconsin, USA"
+    },
+    "Luis Fajardo": {
+      "introduction": "Luis Fajardo from Florida, just need to build something to help me drive the adoption in the company."
+    },
+    "Juan Hernandez": {
+      "introduction": "Juan Hernandez. I'm from San Diego California. I am a new CEO of an AI startup."
+    },
+    "Evan Li": {
+      "introduction": "Evan Li from San Jose, CA, working at ASML/NVidia."
+    },
+    "Christopher Tan": {
+      "introduction": "Data management analyst at USAA Federal Savings Bank. Using AI and configuring MCP servers and want to learn more on best practices."
+    }
+  },
+  "teachers": {
+    "Amir Barati Farimani": {
+      "introduction": "Russell V. Trader Associate Professor of Mechanical Engineering"
+    },
+    "Peter Pak": {
+      "introduction": "a PhD candidate in Mechanical Engineering at Carnegie Mellon University, specializing in additive manufacturing and machine learning"
+    },
+    "Jesse Barkley": {
+      "introduction": "Jesse Barkley is an AI engineer and researcher with a background in mechanical engineering, computer vision, and robotics"
+    }
+  }
+}

@@ -4,7 +4,7 @@ version = "0.1.0"
 description = "Personal AI Study Workflow Assistant - CMU AI Agent Course Capstone"
 requires-python = ">=3.11"
 dependencies = [
-    "langchain>=0.3",
+    "langchain>=1.0",
     "langchain-openai>=0.2",
     "langchain-community>=0.3",
     "langgraph>=0.2",
