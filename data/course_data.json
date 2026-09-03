@@ -56,7 +56,18 @@
     }
   ],
 
- 
+  "grading_breakdown": [
+    {
+      "category": "Capstone Checkpoints",
+      "description": "Graded Capstone checkpoints within each module",
+      "weight": "55%"
+    },
+    {
+      "category": "Final Capstone Submission",
+      "description": "Final Capstone project report and presentation",
+      "weight": "45%"
+    }
+  ],
 
   "students": {
     "Doerte Doepfer": {
@@ -73,6 +84,51 @@
     },
     "Christopher Tan": {
       "introduction": "Data management analyst at USAA Federal Savings Bank. Using AI and configuring MCP servers and want to learn more on best practices."
+    },
+    "Imee Cuison": {
+      "introduction": "Charleston, SC. Want to build AI Agents"
+    },
+    "Subathra Raman": {
+      "introduction": "Joining from Florida. I want to upskill in AI as the world is evolving"
+    },
+    "vijay": {
+      "introduction": "I am a senior software professional. From Michigan. Want carrier change to Agentic Ai"
+    },
+    "abhinay": {
+      "introduction": "I work as a Senior Engineering Manager at McDonald’s IAM team. I would like to build AI Agents and would like to learn basics of AI."
+    },
+    "Reshma Patil": {
+      "introduction": "Born & raised in Mumbai, living in Bay Area, CA. Want to learn building agents"
+    },
+    "Raphael Davis": {
+      "introduction": "Cloud Architect and infrastructure specialist. Out of Chicago"
+    },
+    "David Yamin": {
+      "introduction": "Sarasota, FL. I'm an attorney and have a masters in data science. I want to use AI to build automated legal workflows"
+    },
+    "Shawn Cunningham": {
+      "introduction": "San Francisco, here to learn how to build agentic ai for my clients [Software Consulting]"
+    },
+    "Paritosh Mathur": {
+      "introduction": "I am an architect working in financial claims from wisconsin. We are exploring builing agents to process claims."
+    },
+    "Swati Patil Skelly": {
+      "introduction": "I live in New Hampshire. I have worked with databases all my career and am very interested in expanding into this area."
+    },
+    "Ramam Pattisapu": {
+      "introduction": "From Knowles Corp. From Chicago, IL. What to learn agentic AI"
+    },
+    "Muralikrishna Assadi": {
+      "introduction": "I am from Philadelphia Pennsylvania"
+    },
+    "Toby Babu": {
+      "introduction": "I am from San Francisco. Excited about this program about building AI agents."
+    },
+    "Manish Bhatt": {
+      "introduction": "VP, Enterprise Data Services at Aspire Lifestyles. Location: Parsippany, NJ, Motivation: To implement it for Travel and Lifestyles"
+    },
+    "Erbene Castro": {
+      "introduction": "From Brazil! I want to get up to date with the latest technologies!"
     }
   },
   "teachers": {
