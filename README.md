@@ -11,6 +11,10 @@ study materials and plan your study time.
 - Built as a [LangGraph](https://github.com/langchain-ai/langgraph) ReAct agent
   with OpenAI as the underlying model, exposing the above as tools.
 
+See [ARCHITECTURE.md](ARCHITECTURE.md) for how the pieces fit together — the agent's
+tool-calling loop, the RAG pipeline, and why course roster data is served through tools
+instead of being ingested into the vector store.
+
 ## Project layout
 
 ```
