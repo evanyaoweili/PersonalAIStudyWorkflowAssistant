@@ -1,0 +1,27 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "study-assistant: chat (debug)",
+      "type": "debugpy",
+      "request": "launch",
+      "module": "study_assistant.main",
+      "args": ["--debug", "chat"],
+      "console": "integratedTerminal",
+      "envFile": "${workspaceFolder}/.env",
+      "cwd": "${workspaceFolder}",
+      "justMyCode": true
+    },
+    {
+      "name": "study-assistant: ingest (debug)",
+      "type": "debugpy",
+      "request": "launch",
+      "module": "study_assistant.main",
+      "args": ["--debug", "ingest"],
+      "console": "integratedTerminal",
+      "envFile": "${workspaceFolder}/.env",
+      "cwd": "${workspaceFolder}",
+      "justMyCode": true
+    }
+  ]
+}

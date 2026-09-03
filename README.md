@@ -51,6 +51,25 @@ study-assistant ingest
 
 # Chat with the agent
 study-assistant chat
+
+#for debugging:
+#Here's the full command line, both without needing prior activation:
+
+#PowerShell (VS Code's default terminal on Windows):
+
+
+cd "c:\SourceCode\CMUAiCourse\PersonalAIStudyWorkflowAssistant"
+.\.venv\Scripts\study-assistant.exe --debug chat
+
+#Git Bash:
+
+
+cd "c:\SourceCode\CMUAiCourse\PersonalAIStudyWorkflowAssistant"
+.venv/Scripts/study-assistant.exe --debug chat
+
+#Calling the .exe by its full path this way skips activation entirely and PATH issues don't matter — it'll run regardless of which shell or activation state you're in. This is exactly what I used on my end to verify it works.
+
+#Once it starts, type a question and paste back whatever appears (the --debug flag will print verbose LangChain/OpenAI trace output) — that'll show exactly where it's failing for you.
 ```
 
 ## Tests
