@@ -13,6 +13,9 @@ data/materials/*
 # Runtime guardrail/audit log
 data/guardrail_events.log
 
+# Local per-user assignment completion state
+data/course_progress.json
+
 .pytest_cache/
 .ruff_cache/
 dist/

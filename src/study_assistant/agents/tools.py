@@ -1,11 +1,13 @@
 import logging
-from datetime import date
+from datetime import date, datetime
 
 from langchain_core.tools import tool
 
 from study_assistant.course_data import get_course_info as _get_course_info
 from study_assistant.course_data import get_person_info as _get_person_info
 from study_assistant.course_data import list_people as _list_people
+from study_assistant.course_progress import get_completed as _get_completed
+from study_assistant.course_progress import mark_completed as _mark_completed
 from study_assistant.ingestion.embeddings import get_embeddings
 from study_assistant.ingestion.vectorstore import get_vectorstore
 from study_assistant.planning.models import StudyTask
@@ -59,6 +61,57 @@ def get_person_info(name: str) -> str:
 
 
 @tool
+def whats_next() -> str:
+    """Recommend the highest-priority thing to work on next for the course:
+    the nearest-due assignment/checkpoint that hasn't been marked completed."""
+    info = _get_course_info()
+    assignments = info.get("assignments", [])
+    completed = set(_get_completed())
+
+    pending = []
+    for a in assignments:
+        name = a.get("assignment") if isinstance(a, dict) else a
+        if not name or name in completed:
+            continue
+        due_str = a.get("due_date") if isinstance(a, dict) else None
+        try:
+            due_date = datetime.strptime(due_str, "%d-%b-%y").date() if due_str else None
+        except ValueError:
+            due_date = None
+        pending.append((due_date, name, a))
+
+    if not pending:
+        return "Nothing pending — every known assignment is marked completed (or there's no assignment data)."
+
+    pending.sort(key=lambda p: (p[0] is None, p[0]))
+    due_date, name, a = pending[0]
+    lines = [f"Next up: {name}"]
+    if isinstance(a, dict):
+        if a.get("due_date"):
+            lines.append(f"Due: {a['due_date']}")
+        if a.get("points") is not None:
+            lines.append(f"Points: {a['points']}")
+    if len(pending) > 1:
+        lines.append(f"({len(pending) - 1} more pending assignment(s) after this one.)")
+    return "\n".join(lines)
+
+
+@tool
+def mark_assignment_completed(assignment_name: str) -> str:
+    """Mark a course assignment/checkpoint as completed (matched by partial,
+    case-insensitive name) so whats_next stops recommending it."""
+    info = _get_course_info()
+    names = [a.get("assignment", "") if isinstance(a, dict) else a for a in info.get("assignments", [])]
+    match = next((n for n in names if assignment_name.lower() in n.lower()), None)
+    if match is None:
+        logger.info("escalation=assignment_not_found requested=%r", assignment_name)
+        return f"No assignment matching '{assignment_name}' found. Known assignments: {names}"
+    _mark_completed(match)
+    logger.info("decision=assignment_marked_completed assignment=%r", match)
+    return f"Marked '{match}' as completed."
+
+
+@tool
 def plan_study_schedule(tasks: list[StudyTask], hours_per_day: float) -> str:
     """Build a day-by-day study schedule for a list of tasks (topic, deadline,
     estimated_hours, priority), given how many hours are available per day."""
@@ -69,4 +122,12 @@ def plan_study_schedule(tasks: list[StudyTask], hours_per_day: float) -> str:
     return "\n".join(lines)
 
 
-ALL_TOOLS = [ask_study_materials, plan_study_schedule, get_course_info, get_person_info, list_roster]
+ALL_TOOLS = [
+    ask_study_materials,
+    plan_study_schedule,
+    get_course_info,
+    get_person_info,
+    list_roster,
+    whats_next,
+    mark_assignment_completed,
+]

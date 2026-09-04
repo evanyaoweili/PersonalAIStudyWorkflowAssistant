@@ -57,6 +57,7 @@ flowchart TB
 | [`ingestion/vectorstore.py`](src/study_assistant/ingestion/vectorstore.py) | Wraps a local `Chroma` collection persisted at `data/chroma/`; `index_documents` adds embedded chunks to it. |
 | [`rag/qa.py`](src/study_assistant/rag/qa.py) | Given a question: similarity-search the vector store for top-`k` chunks, stuff them into a prompt, ask the chat model, return the answer. |
 | [`course_data.py`](src/study_assistant/course_data.py) | Loads `data/course_data.json` (course name/term, assignments, grading breakdown, student/teacher roster) and exposes lookup functions. See [Why course data isn't RAG-ingested](#why-course-data-isnt-rag-ingested) below. |
+| [`course_progress.py`](src/study_assistant/course_progress.py) | Tracks which assignments the user has marked completed, persisted to `data/course_progress.json`. Backs the `whats_next` tool. |
 | [`planning/models.py`](src/study_assistant/planning/models.py) | Pydantic models: `StudyTask` (input) and `StudyBlock` (a scheduled chunk of work). |
 | [`planning/scheduler.py`](src/study_assistant/planning/scheduler.py) | Pure, deterministic greedy algorithm — no LLM call. Allocates daily hours to tasks, nearest deadline first, ties broken by priority. |
 | [`agents/tools.py`](src/study_assistant/agents/tools.py) | Wraps the functions above as LangChain `@tool`s: `ask_study_materials`, `plan_study_schedule`, `get_course_info`, `get_person_info`. |
@@ -166,3 +167,19 @@ Intervention Plan:
 Not implemented: automatic scope classification (rejecting off-topic requests before
 they reach the agent) — currently the system prompt is the only scope control, which is
 a soft measure, not a hard guardrail.
+
+## "What's next" (Capstone Checkpoint 2.1)
+
+Checkpoint 2.1's design doc narrows the project to answering one question reliably:
+*"What should I work on next for my course?"* Two tools implement this directly:
+
+- **`whats_next`** — reads assignments from `course_data.py`, excludes anything in
+  `course_progress.py`'s completed set, parses `due_date` (`%d-%b-%y`), and returns the
+  nearest-due pending item.
+- **`mark_assignment_completed`** — case-insensitive partial-name match against known
+  assignments, persists the canonical name to `data/course_progress.json`.
+
+Deliberately out of scope from that same doc: a generic long-term memory tool
+(`project_memory.json`/`prior_feedback.json`) and a reminder tool — both are real gaps,
+but weren't added here since they weren't clearly CMU-course-scoped requests on their
+own; add them as a separate, explicit ask if needed.

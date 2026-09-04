@@ -16,6 +16,7 @@ class Settings:
     course_data_path: str = os.getenv("COURSE_DATA_PATH", "data/course_data.json")
     rag_max_distance: float = float(os.getenv("RAG_MAX_DISTANCE", "1.3"))
     guardrail_log_path: str = os.getenv("GUARDRAIL_LOG_PATH", "data/guardrail_events.log")
+    course_progress_path: str = os.getenv("COURSE_PROGRESS_PATH", "data/course_progress.json")
 
 
 settings = Settings()
