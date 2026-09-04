@@ -1,3 +1,4 @@
+import logging
 from datetime import date
 
 from langchain_core.tools import tool
@@ -10,6 +11,8 @@ from study_assistant.ingestion.vectorstore import get_vectorstore
 from study_assistant.planning.models import StudyTask
 from study_assistant.planning.scheduler import build_schedule
 from study_assistant.rag.qa import answer_question
+
+logger = logging.getLogger(__name__)
 
 
 @tool
@@ -31,10 +34,22 @@ def get_course_info() -> str:
 
 
 @tool
+def list_roster() -> str:
+    """List the names of all known students and teachers in the course."""
+    roster = _list_people()
+    lines = ["Students:"]
+    lines += [f"- {name}" for name in roster["students"]]
+    lines.append("Teachers:")
+    lines += [f"- {name}" for name in roster["teachers"]]
+    return "\n".join(lines)
+
+
+@tool
 def get_person_info(name: str) -> str:
     """Look up a student's or teacher's introduction/bio by name from the course roster."""
     person = _get_person_info(name)
     if person is None:
+        logger.info("escalation=person_not_found requested_name=%r", name)
         roster = _list_people()
         return (
             f"No record found for '{name}'. "
@@ -54,4 +69,4 @@ def plan_study_schedule(tasks: list[StudyTask], hours_per_day: float) -> str:
     return "\n".join(lines)
 
 
-ALL_TOOLS = [ask_study_materials, plan_study_schedule, get_course_info, get_person_info]
+ALL_TOOLS = [ask_study_materials, plan_study_schedule, get_course_info, get_person_info, list_roster]

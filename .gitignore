@@ -10,6 +10,9 @@ data/chroma/
 data/materials/*
 !data/materials/.gitkeep
 
+# Runtime guardrail/audit log
+data/guardrail_events.log
+
 .pytest_cache/
 .ruff_cache/
 dist/

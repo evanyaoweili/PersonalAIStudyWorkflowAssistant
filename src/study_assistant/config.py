@@ -14,6 +14,8 @@ class Settings:
     study_materials_dir: str = os.getenv("STUDY_MATERIALS_DIR", "data/materials")
     chroma_persist_dir: str = os.getenv("CHROMA_PERSIST_DIR", "data/chroma")
     course_data_path: str = os.getenv("COURSE_DATA_PATH", "data/course_data.json")
+    rag_max_distance: float = float(os.getenv("RAG_MAX_DISTANCE", "1.3"))
+    guardrail_log_path: str = os.getenv("GUARDRAIL_LOG_PATH", "data/guardrail_events.log")
 
 
 settings = Settings()

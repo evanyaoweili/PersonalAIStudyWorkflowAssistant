@@ -9,6 +9,9 @@ from study_assistant.config import settings
 from study_assistant.ingestion.embeddings import get_embeddings
 from study_assistant.ingestion.loader import load_documents, split_documents
 from study_assistant.ingestion.vectorstore import index_documents
+from study_assistant.observability import configure_logging
+
+logger = logging.getLogger(__name__)
 
 
 def cmd_ingest(_args: argparse.Namespace) -> None:
@@ -25,7 +28,14 @@ def cmd_chat(_args: argparse.Namespace) -> None:
         question = input("> ").strip()
         if question.lower() in {"exit", "quit"}:
             break
-        result = agent.invoke({"messages": [HumanMessage(content=question)]})
+        if not question:
+            continue
+        try:
+            result = agent.invoke({"messages": [HumanMessage(content=question)]})
+        except Exception:
+            logger.exception("decision=error question=%r", question)
+            print("Something went wrong answering that. Please try again.")
+            continue
         print(result["messages"][-1].content)
 
 
@@ -45,6 +55,8 @@ def main() -> None:
     chat_parser.set_defaults(func=cmd_chat)
 
     args = parser.parse_args()
+
+    configure_logging()
 
     if args.debug:
         logging.basicConfig(level=logging.DEBUG)

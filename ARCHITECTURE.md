@@ -148,3 +148,21 @@ All settings live in `.env` (copy from `.env.example`) and are loaded once in
 - **Chroma** — local, file-persisted vector store
 - **Pydantic** — validates tool arguments (`StudyTask`) and planning data models
 - **argparse** — CLI parsing, no external CLI framework
+
+## Safety guardrails
+
+Implements the guardrails from the Capstone Checkpoint 6.1 Safety Guardrails and Human
+Intervention Plan:
+
+| Guardrail | Where | Behavior |
+|---|---|---|
+| Input validation | [`main.py`](src/study_assistant/main.py) `cmd_chat` | Empty/whitespace-only input is skipped rather than sent to the agent. |
+| Evidence grounding | [`rag/qa.py`](src/study_assistant/rag/qa.py) | If retrieval returns zero chunks, the tool returns a fixed "no materials ingested" message and never calls the LLM — it can't invent an answer with no evidence. |
+| Confidence-based escalation | [`rag/qa.py`](src/study_assistant/rag/qa.py) | The best retrieval distance is compared to `RAG_MAX_DISTANCE` (default `1.3`). Above it, the prompt tells the model confidence is `'low'` and to make clear the answer needs verification, instead of answering with false confidence. |
+| Restricted tool access | [`agents/tools.py`](src/study_assistant/agents/tools.py), [`agents/graph.py`](src/study_assistant/agents/graph.py) | There are no tools to submit assignments, modify records, or send messages — only retrieval, lookup, and scheduling. The system prompt states this explicitly so the model doesn't attempt it. |
+| Runtime/audit logging | [`observability.py`](src/study_assistant/observability.py) | An always-on (independent of `--debug`) logger writes retrieval confidence, escalation events, and unhandled errors to `GUARDRAIL_LOG_PATH` (default `data/guardrail_events.log`) — distinct from `--debug`'s verbose LangChain trace, meant for reviewing agent behavior over time. |
+| Graceful error handling | [`main.py`](src/study_assistant/main.py) `cmd_chat` | An exception during `agent.invoke` is logged and the user gets a plain-language message, instead of a raw traceback killing the chat loop. |
+
+Not implemented: automatic scope classification (rejecting off-topic requests before
+they reach the agent) — currently the system prompt is the only scope control, which is
+a soft measure, not a hard guardrail.
