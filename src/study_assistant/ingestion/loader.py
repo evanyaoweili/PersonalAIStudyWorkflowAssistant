@@ -1,3 +1,4 @@
+import re
 from functools import partial
 from pathlib import Path
 
@@ -11,6 +12,23 @@ LOADERS = {
     ".md": partial(TextLoader, encoding="utf-8", autodetect_encoding=True),
 }
 
+_CHECKPOINT_RE = re.compile(r"(?:checkpoint|assignment)\s+(\d+\.\d+)", re.IGNORECASE)
+
+
+def _tag_metadata(doc: Document, path: Path) -> None:
+    """Attach lightweight source metadata (checkpoint number, document type)
+    so retrieval can disambiguate e.g. a '3.1' question from '2.1' content."""
+    name = path.stem
+    match = _CHECKPOINT_RE.search(name)
+    if match:
+        doc.metadata["checkpoint"] = match.group(1)
+    if "assignment brief" in name.lower():
+        doc.metadata["doc_type"] = "assignment_brief"
+    elif match:
+        doc.metadata["doc_type"] = "design_submission"
+    else:
+        doc.metadata["doc_type"] = "reference"
+
 
 def load_documents(materials_dir: str) -> list[Document]:
     docs: list[Document] = []
@@ -20,7 +38,10 @@ def load_documents(materials_dir: str) -> list[Document]:
         loader_cls = LOADERS.get(path.suffix.lower())
         if loader_cls is None:
             continue
-        docs.extend(loader_cls(str(path)).load())
+        loaded = loader_cls(str(path)).load()
+        for doc in loaded:
+            _tag_metadata(doc, path)
+        docs.extend(loaded)
     return docs
 
 

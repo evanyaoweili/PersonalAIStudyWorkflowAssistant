@@ -210,3 +210,30 @@ Deliberately out of scope from that same doc: a generic long-term memory tool
 (`project_memory.json`/`prior_feedback.json`) and a reminder tool — both are real gaps,
 but weren't added here since they weren't clearly CMU-course-scoped requests on their
 own; add them as a separate, explicit ask if needed.
+
+## Checkpoint-aware retrieval + MMR (Capstone Checkpoint 3.1)
+
+Checkpoint 3.1's design doc calls out a specific retrieval failure mode: asking about one
+checkpoint could retrieve another's content, since files about similar topics (e.g.
+several capstone checkpoints) can be semantically close together. It also proposes MMR to
+avoid several near-duplicate chunks crowding out distinct information. Both are
+implemented in [`rag/qa.py`](src/study_assistant/rag/qa.py):
+
+- **Metadata tagging** — [`loader.py`](src/study_assistant/ingestion/loader.py) tags each
+  chunk with `checkpoint` (parsed from the filename, e.g. `"3.1"`) and `doc_type`
+  (`assignment_brief` / `design_submission` / `reference`) at ingestion time.
+- **Checkpoint-scoped retrieval** — if the question names a checkpoint/assignment number
+  (`"checkpoint 3.1"`, case-insensitive), retrieval is first tried filtered to
+  `{"checkpoint": "3.1"}`. If that filter returns anything, it's used exclusively; if not
+  (e.g. the number doesn't match anything ingested), it falls back to an unfiltered
+  search rather than hard-failing.
+- **MMR for context** — the actual passages handed to the LLM come from
+  `max_marginal_relevance_search` (not plain top-`k` similarity), so a set of
+  near-duplicate chunks doesn't dominate the context at the expense of distinct
+  information. The confidence-threshold guardrail still uses plain
+  `similarity_search_with_score`, since MMR doesn't return comparable distances.
+
+This is a real, reproducible risk in this exact dataset, not a hypothetical: asking
+`"What are the requirements for checkpoint 3.1?"` with the filter disabled pulls
+checkpoint 4.1 and 5.1 chunks into the top-4 (scores 1.02 and 1.11, close enough to the
+top match's 0.99 to make the cut) — the filter excludes them.
