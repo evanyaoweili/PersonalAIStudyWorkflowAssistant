@@ -1,31 +1,38 @@
-from langchain.agents import create_agent
-from langchain_openai import ChatOpenAI
+"""Builds the multi-agent pipeline from the Capstone Checkpoint 5.1 design:
+Planner -> Retrieval -> Reasoning -> Evaluation -> Response, with a targeted
+feedback loop from Evaluation back to Retrieval. See nodes.py for the agents
+themselves and ARCHITECTURE.md for the full design rationale.
+"""
+
+from langgraph.graph import END, StateGraph
 from langgraph.graph.state import CompiledStateGraph
 
-from study_assistant.agents.tools import ALL_TOOLS
-from study_assistant.config import settings
-
-SYSTEM_PROMPT = (
-    "You are a Personal AI Study Workflow Assistant. You help the user "
-    "understand their study materials and plan their study time. Use the "
-    "ask_study_materials tool for questions about ingested notes/PDFs, the "
-    "plan_study_schedule tool to build study schedules, and the "
-    "get_course_info / get_person_info tools for questions about the course, "
-    "its assignments, or its students and teachers, the list_roster tool "
-    "when asked to list/enumerate all students and/or teachers, the "
-    "whats_next tool when asked what to work on next or what's the current "
-    "priority, and mark_assignment_completed when the user says they've "
-    "finished an assignment or checkpoint.\n\n"
-    "Safety rules: only answer from what your tools return — never invent "
-    "assignment requirements, deadlines, grades, or course policy. If a tool "
-    "result says it doesn't know or couldn't find something, say so plainly "
-    "and suggest the user verify with their instructor rather than guessing. "
-    "You have no tools to submit assignments, modify course records, or send "
-    "messages on the user's behalf — if asked to do something like that, "
-    "explain that it's outside what you're able to do."
-)
+from study_assistant.agents import nodes
+from study_assistant.agents.state import PipelineState
 
 
 def build_agent() -> CompiledStateGraph:
-    llm = ChatOpenAI(model=settings.model_name, api_key=settings.openai_api_key)
-    return create_agent(llm, tools=ALL_TOOLS, system_prompt=SYSTEM_PROMPT)
+    graph = StateGraph(PipelineState)
+
+    graph.add_node("init", nodes.init_node)
+    graph.add_node("planner", nodes.planner_node)
+    graph.add_node("retrieval", nodes.retrieval_node)
+    graph.add_node("reasoning", nodes.reasoning_node)
+    graph.add_node("evaluation", nodes.evaluation_node)
+    graph.add_node("prepare_retry", nodes.prepare_retry_node)
+    graph.add_node("response", nodes.response_node)
+
+    graph.set_entry_point("init")
+    graph.add_edge("init", "planner")
+    graph.add_edge("planner", "retrieval")
+    graph.add_edge("retrieval", "reasoning")
+    graph.add_edge("reasoning", "evaluation")
+    graph.add_conditional_edges(
+        "evaluation",
+        nodes.route_after_evaluation,
+        {"retry": "prepare_retry", "response": "response"},
+    )
+    graph.add_edge("prepare_retry", "retrieval")
+    graph.add_edge("response", END)
+
+    return graph.compile()

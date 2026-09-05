@@ -9,16 +9,17 @@ For setup/usage instructions, see [README.md](README.md).
 ## What it is
 
 A command-line agent, built as a [LangGraph](https://github.com/langchain-ai/langgraph)
-tool-calling agent on top of OpenAI models, that helps you:
+multi-agent pipeline on top of OpenAI models, that helps you:
 
 - **Ask questions about your own study materials** (PDFs, notes) — a retrieval-augmented
   generation (RAG) pipeline grounds answers in content you've ingested.
 - **Look up course/roster info** (assignments, grading breakdown, students, teachers) —
-  served from a structured JSON file via dedicated tools, not RAG.
+  served from a structured JSON file via dedicated lookups, not RAG.
 - **Build a study schedule** — a deterministic greedy scheduler, no LLM involved.
 
-The agent itself doesn't hard-code any of this logic; it's given a system prompt and a
-list of tools, and it decides at each turn whether to answer directly or call a tool.
+The pipeline is five specialized agents — Planner, Retrieval, Reasoning, Evaluation,
+Response — instead of one LLM freely choosing tools turn by turn. See
+[Multi-agent pipeline](#multi-agent-pipeline-capstone-checkpoint-51) below for why and how.
 
 ## High-level diagram
 
@@ -29,21 +30,27 @@ flowchart TB
 
     CLI -->|ingest| Loader[ingestion/loader.py]
     Loader -->|"reads *.pdf / *.txt / *.md"| Materials[("data/materials/")]
-    Loader --> Splitter[chunk documents]
+    Loader --> Splitter[chunk + tag metadata]
     Splitter --> Embed1[ingestion/embeddings.py]
     Embed1 --> Chroma[("data/chroma/\nvector store")]
 
-    CLI -->|chat| Agent[agents/graph.py\nLangGraph create_agent]
-    Agent <-->|"tool-calling loop"| LLM[["OpenAI Chat Model\n(gpt-4.1-mini)"]]
+    CLI -->|chat| Init[agents/nodes.py\ninit]
+    Init --> Planner[Planner]
+    Planner --> Retrieval[Retrieval]
+    Retrieval --> Reasoning[Reasoning]
+    Reasoning --> Evaluation[Evaluation]
+    Evaluation -->|grounded| Response[Response]
+    Evaluation -->|"not grounded\n(max 1 retry)"| Retrieval
 
-    Agent -->|"ask_study_materials"| RAG[rag/qa.py]
+    Retrieval -->|"ask_study_materials"| RAG[rag/qa.py]
     RAG --> Chroma
-    RAG --> LLM
-
-    Agent -->|"get_course_info /\nget_person_info"| CourseData[course_data.py]
+    Retrieval -->|"get_course_info /\nget_person_info / whats_next"| CourseData[course_data.py]
     CourseData --> JSON[("data/course_data.json")]
+    Retrieval -->|"plan_study_schedule"| Scheduler[planning/scheduler.py]
 
-    Agent -->|"plan_study_schedule"| Scheduler[planning/scheduler.py]
+    Planner <-->|LLM call| LLM[["OpenAI Chat Model"]]
+    Reasoning <-->|LLM call| LLM
+    Response <-->|LLM call| LLM
 ```
 
 ## Components
@@ -60,8 +67,10 @@ flowchart TB
 | [`course_progress.py`](src/study_assistant/course_progress.py) | Tracks which assignments the user has marked completed, persisted to `data/course_progress.json`. Backs the `whats_next` tool. |
 | [`planning/models.py`](src/study_assistant/planning/models.py) | Pydantic models: `StudyTask` (input) and `StudyBlock` (a scheduled chunk of work). |
 | [`planning/scheduler.py`](src/study_assistant/planning/scheduler.py) | Pure, deterministic greedy algorithm — no LLM call. Allocates daily hours to tasks, nearest deadline first, ties broken by priority. |
-| [`agents/tools.py`](src/study_assistant/agents/tools.py) | Wraps the functions above as LangChain `@tool`s: `ask_study_materials`, `plan_study_schedule`, `get_course_info`, `get_person_info`. |
-| [`agents/graph.py`](src/study_assistant/agents/graph.py) | Builds the agent: `ChatOpenAI` + the tool list + a system prompt, via LangChain's `create_agent` (a prebuilt LangGraph ReAct-style tool-calling loop). |
+| [`agents/tools.py`](src/study_assistant/agents/tools.py) | Wraps the functions above as LangChain `@tool`s: `ask_study_materials`, `plan_study_schedule`, `get_course_info`, `get_person_info`, `list_roster`, `whats_next`, `mark_assignment_completed`. Invoked directly by the Retrieval Agent (`.invoke(...)`), not chosen by an LLM's own tool-calling loop. |
+| [`agents/state.py`](src/study_assistant/agents/state.py) | `PipelineState` (the shared state threaded through the graph) and the structured-output Pydantic models (`PlannerDecision`, `ReasoningCandidate(s)`, `ScheduleExtract`). |
+| [`agents/nodes.py`](src/study_assistant/agents/nodes.py) | The five agents themselves as plain functions over `PipelineState`, plus the evaluation-routing and retry logic. See [Multi-agent pipeline](#multi-agent-pipeline-capstone-checkpoint-51) below. |
+| [`agents/graph.py`](src/study_assistant/agents/graph.py) | Wires `nodes.py`'s functions into a LangGraph `StateGraph` with the sequential core, the conditional evaluation branch, and the retry loop. |
 | [`gui.py`](src/study_assistant/gui.py) | Optional Gradio chat UI (`study-assistant gui`, needs the `gui` extra). See [GUI](#gui) below. |
 
 ## GUI
@@ -69,9 +78,10 @@ flowchart TB
 `study-assistant gui` launches a Gradio app with a chat pane and two live tabs:
 
 - **Trace** — built by calling `agent.stream(..., stream_mode="values")` instead of
-  `.invoke()`. LangGraph yields the full message list after every step, so diffing
-  consecutive yields exposes each `AIMessage` tool call and matching `ToolMessage` result
-  as they happen, not just the final answer.
+  `.invoke()`. LangGraph yields the full pipeline state after every node, so each new
+  value of `intent`/`evidence`/`chosen`/`grounded` is rendered as it appears — Planner,
+  Retrieval, Reasoning, and Evaluation's output show up live, labeled `(retry N)` if
+  Evaluation's feedback loop sends it back through Retrieval a second time.
 - **Log** — tails `data/guardrail_events.log`, the same file `observability.py` writes to
   for the CLI. Independent of `--debug`, which is far noisier (raw HTTP + full LangChain
   trace) and not meant for this kind of at-a-glance view.
@@ -109,31 +119,13 @@ against a previous run.
 input("> ") → agent.invoke({"messages": [...]}) → print(result)
 ```
 
-Each turn goes through LangGraph's tool-calling loop:
+Each turn runs the full five-agent pipeline once (see
+[Multi-agent pipeline](#multi-agent-pipeline-capstone-checkpoint-51) below), then the
+final assistant message is printed.
 
-1. The full conversation (system prompt + message history) goes to the chat model.
-2. The model either answers directly, or emits one or more tool calls.
-3. If it calls a tool, the corresponding Python function in `tools.py` runs and its
-   return value (a string) is appended to the conversation as a tool message.
-4. The model is called again with that tool result in context, and either answers or
-   calls another tool.
-5. The final assistant message is printed.
-
-Run with `--debug` to see this loop directly — it turns on LangChain's `set_debug(True)`,
-which prints every chain/LLM/tool step, plus raw HTTP-level logging for the OpenAI calls.
-
-## The four tools
-
-| Tool | Backed by | Uses the LLM? |
-|---|---|---|
-| `ask_study_materials` | Chroma similarity search over `data/materials/` | Yes — to compose the final answer from retrieved chunks |
-| `get_course_info` | `data/course_data.json` (course, term, assignments) | No — pure lookup |
-| `get_person_info` | `data/course_data.json` (students, teachers) | No — pure lookup, case-insensitive name match |
-| `plan_study_schedule` | `planning/scheduler.py` greedy algorithm | No — deterministic |
-
-Only `ask_study_materials` involves retrieval + generation. The other three are plain
-function calls — the LLM's job there is purely deciding *when* to call them and how to
-phrase the arguments (e.g. parsing "how am I doing" into a call to `get_person_info`).
+Run with `--debug` to see it directly — it turns on LangChain's `set_debug(True)`, which
+prints every chain/LLM step (each node in the pipeline is a LangGraph chain), plus raw
+HTTP-level logging for the OpenAI calls.
 
 ## Why course data isn't RAG-ingested
 
@@ -171,7 +163,7 @@ All settings live in `.env` (copy from `.env.example`) and are loaded once in
 
 ## Tech stack
 
-- **LangGraph / LangChain `create_agent`** — the tool-calling agent loop
+- **LangGraph** — a custom `StateGraph` (not the prebuilt `create_agent` loop) implementing the five-agent pipeline
 - **OpenAI** — chat completions (`gpt-4.1-mini`) and embeddings (`text-embedding-3-small`)
 - **Chroma** — local, file-persisted vector store
 - **Pydantic** — validates tool arguments (`StudyTask`) and planning data models
@@ -187,7 +179,7 @@ Intervention Plan:
 | Input validation | [`main.py`](src/study_assistant/main.py) `cmd_chat` | Empty/whitespace-only input is skipped rather than sent to the agent. |
 | Evidence grounding | [`rag/qa.py`](src/study_assistant/rag/qa.py) | If retrieval returns zero chunks, the tool returns a fixed "no materials ingested" message and never calls the LLM — it can't invent an answer with no evidence. |
 | Confidence-based escalation | [`rag/qa.py`](src/study_assistant/rag/qa.py) | The best retrieval distance is compared to `RAG_MAX_DISTANCE` (default `1.3`). Above it, the prompt tells the model confidence is `'low'` and to make clear the answer needs verification, instead of answering with false confidence. |
-| Restricted tool access | [`agents/tools.py`](src/study_assistant/agents/tools.py), [`agents/graph.py`](src/study_assistant/agents/graph.py) | There are no tools to submit assignments, modify records, or send messages — only retrieval, lookup, and scheduling. The system prompt states this explicitly so the model doesn't attempt it. |
+| Restricted tool access | [`agents/tools.py`](src/study_assistant/agents/tools.py), [`agents/nodes.py`](src/study_assistant/agents/nodes.py) `RESPONSE_PROMPT` | There are no tools to submit assignments, modify records, or send messages — only retrieval, lookup, and scheduling. The Response Agent's prompt states this explicitly so it doesn't claim otherwise. |
 | Runtime/audit logging | [`observability.py`](src/study_assistant/observability.py) | An always-on (independent of `--debug`) logger writes retrieval confidence, escalation events, and unhandled errors to `GUARDRAIL_LOG_PATH` (default `data/guardrail_events.log`) — distinct from `--debug`'s verbose LangChain trace, meant for reviewing agent behavior over time. |
 | Graceful error handling | [`main.py`](src/study_assistant/main.py) `cmd_chat` | An exception during `agent.invoke` is logged and the user gets a plain-language message, instead of a raw traceback killing the chat loop. |
 
@@ -237,3 +229,69 @@ This is a real, reproducible risk in this exact dataset, not a hypothetical: ask
 `"What are the requirements for checkpoint 3.1?"` with the filter disabled pulls
 checkpoint 4.1 and 5.1 chunks into the top-4 (scores 1.02 and 1.11, close enough to the
 top match's 0.99 to make the cut) — the filter excludes them.
+
+## Multi-agent pipeline (Capstone Checkpoint 5.1)
+
+Checkpoint 5.1's design doc replaces the single LLM-driven tool-calling loop described
+above with five specialized agents, each independently checkable, coordinated by a
+LangGraph `StateGraph` (not the prebuilt `create_agent`). Rationale from the doc:
+*"Combining planning, retrieval, reasoning, verification, and writing in one prompt would
+make mistakes harder to detect. Separating these responsibilities allows each result to
+be checked before it reaches the learner."*
+
+### The five agents ([`agents/nodes.py`](src/study_assistant/agents/nodes.py))
+
+| Agent | Role | LLM call? |
+|---|---|---|
+| **Planner** | Classifies the request into one of 8 intents (`study_materials`, `course_info`, `roster`, `person_info`, `next_priority`, `mark_completed`, `scheduling`, `general`) and extracts a self-contained `detail` (resolving references like "it" against conversation history), via `with_structured_output(PlannerDecision)`. | Yes |
+| **Retrieval** | Invokes the one existing `agents/tools.py` tool matching the intent (`.invoke(...)`, not LLM-chosen) and collects its output as `evidence`. Reuses every guardrail/log line already built into those tools. | No — plain function dispatch |
+| **Reasoning** | For open-ended intents (`study_materials`, `next_priority`, `general`), proposes up to 2 candidate answers with self-rated confidence via `with_structured_output(ReasoningCandidates)` — a lightweight Tree-of-Thought, capped at 2 branches per the doc's own caution against "excessive branching wast[ing] time and tokens." For deterministic lookups (`course_info`, `roster`, `person_info`, `mark_completed`), skips branching entirely — one candidate, confidence 1.0 unless the evidence signals a not-found/empty result. | Only for open-ended intents |
+| **Evaluation** | Gates on `chosen.confidence >= 0.5` and the evidence not matching a known not-found/no-evidence marker. `general` intent always passes (nothing to ground). Routes to Response if grounded, or back to Retrieval (capped at 1 retry) if not. | No |
+| **Response** | Formats the approved result for the learner. Deterministic-lookup and scheduling intents pass the evidence straight through (no LLM call — nothing to add). Open-ended intents get one LLM polish call. If Evaluation never grounded the answer (even after the retry), returns a fixed "I don't have enough reliable information" message instead of guessing. | Only for open-ended intents |
+
+### Coordination and the feedback loop ([`agents/graph.py`](src/study_assistant/agents/graph.py))
+
+```
+init → planner → retrieval → reasoning → evaluation ─┬─(grounded)──→ response → END
+                     ↑                                └─(not grounded,
+                     │                                    retry_count<1)
+                     └──────────── prepare_retry ←────────┘
+```
+
+This matches the doc's hybrid strategy: a **sequential core** (Planner→Retrieval→
+Reasoning→Evaluation→Response), a **targeted feedback loop** (Evaluation routes back to
+Retrieval specifically, not a full restart from Planner), capped at one retry so an
+unsupported answer can't loop forever. `prepare_retry_node` strips any checkpoint/
+assignment number from `detail` before looping back, which forces `rag/qa.py`'s
+checkpoint filter (see above) to widen to an unfiltered MMR search — a concrete, working
+instance of "the evaluator sends the request back to Retrieval... instead of restarting
+the entire workflow."
+
+The doc's "graph-based reasoning" branch (small exploration inside the Reasoning stage)
+is the capped 2-candidate proposal above, not a deep tree search — the doc itself frames
+ToT as needing limited branch count and depth, and this project's evaluation showed
+little value in branching factual lookups at all (see the passthrough-intent list above).
+
+### Compatibility with the CLI and GUI
+
+`PipelineState`'s `messages` field is only touched twice: `init_node` reads the latest
+`HumanMessage`, and `response_node` appends the final `AIMessage` — so
+`main.py`'s `agent.invoke({"messages": [...]})` / `result["messages"][-1].content` and
+`gui.py`'s `agent.stream({"messages": history}, ...)` both work completely unchanged.
+`gui.py`'s Trace tab *did* need updating, though — the old trace watched for
+`AIMessage(tool_calls=...)`/`ToolMessage` pairs appearing in `messages` as a tool-calling
+loop ran; this pipeline doesn't touch `messages` until the very end, so the Trace tab now
+instead watches `intent`/`evidence`/`chosen`/`grounded` appear across pipeline steps.
+
+### A known trade-off, not a bug
+
+The Planner picks exactly **one** intent per turn. This means a request needing two of the
+existing capabilities in one breath doesn't get both — e.g. after "what should I work on
+next?" answers with a checkpoint name, asking "how many points is it worth?" gets
+classified as `study_materials` (a natural reading of "how many points"), which searches
+`data/materials/` rather than routing to `course_info`, where the point value actually
+lives in `course_data.json`. It correctly says it doesn't know rather than guessing — it
+just doesn't find the real answer sitting one intent over. This is the direct, honest cost
+of the doc's own design choice (fixed specialized roles over one flexible agentic loop);
+fixing it would mean letting Planner select multiple intents per turn, which reintroduces
+exactly the harder-to-check complexity the design explicitly trades away.

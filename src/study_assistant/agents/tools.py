@@ -24,6 +24,19 @@ def ask_study_materials(question: str) -> str:
     return answer_question(question, store)
 
 
+def _format_assignment(a) -> str:
+    if not isinstance(a, dict):
+        return f"- {a}"
+    name = a.get("assignment", "Untitled assignment")
+    details = []
+    if a.get("due_date"):
+        details.append(f"due {a['due_date']}")
+    if a.get("points") is not None:
+        details.append(f"{a['points']} pt" + ("s" if a["points"] != 1 else ""))
+    suffix = f" ({', '.join(details)})" if details else ""
+    return f"- {name}{suffix}"
+
+
 @tool
 def get_course_info() -> str:
     """Look up the current course's name, term, and list of assignments."""
@@ -31,18 +44,22 @@ def get_course_info() -> str:
     if not info.get("course"):
         return "No course data available."
     lines = [f"Course: {info['course']}", f"Term: {info['term']}", "Assignments:"]
-    lines += [f"- {a}" for a in info["assignments"]]
+    lines += [_format_assignment(a) for a in info["assignments"]]
     return "\n".join(lines)
 
 
 @tool
-def list_roster() -> str:
-    """List the names of all known students and teachers in the course."""
+def list_roster(group: str = "all") -> str:
+    """List known students and/or teachers. group is 'students', 'teachers',
+    or 'all' (default) to list both."""
     roster = _list_people()
-    lines = ["Students:"]
-    lines += [f"- {name}" for name in roster["students"]]
-    lines.append("Teachers:")
-    lines += [f"- {name}" for name in roster["teachers"]]
+    lines = []
+    if group in ("all", "students"):
+        lines.append("Students:")
+        lines += [f"- {name}" for name in roster["students"]]
+    if group in ("all", "teachers"):
+        lines.append("Teachers:")
+        lines += [f"- {name}" for name in roster["teachers"]]
     return "\n".join(lines)
 
 
@@ -120,14 +137,3 @@ def plan_study_schedule(tasks: list[StudyTask], hours_per_day: float) -> str:
         return "No schedule could be built - check task deadlines and hours."
     lines = [f"{b.day.isoformat()}: {b.task.topic} - {b.hours:.1f}h" for b in blocks]
     return "\n".join(lines)
-
-
-ALL_TOOLS = [
-    ask_study_materials,
-    plan_study_schedule,
-    get_course_info,
-    get_person_info,
-    list_roster,
-    whats_next,
-    mark_assignment_completed,
-]

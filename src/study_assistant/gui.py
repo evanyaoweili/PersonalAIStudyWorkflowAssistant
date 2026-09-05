@@ -13,17 +13,19 @@ Layout:
     |  [ type here ]  [send]   |                              |
     +--------------------------+-----------------------------+
 
-The Trace tab is built by streaming the LangGraph agent step by step (tool
-call -> tool result -> final answer), so you can see the tool-calling loop
-happen rather than just getting a final answer. The Log tab tails the same
-guardrail/audit log written by observability.py (retrieval confidence,
-escalations, errors) -- independent of --debug, which is much noisier.
+The Trace tab is built by streaming the LangGraph pipeline step by step, so
+you can watch Planner -> Retrieval -> Reasoning -> Evaluation -> Response run
+(with Evaluation's feedback loop back to Retrieval visible as a labeled
+"retry" round) rather than just getting a final answer. The Log tab tails
+the same guardrail/audit log written by observability.py (retrieval
+confidence, escalations, errors) -- independent of --debug, which is much
+noisier.
 """
 
 from pathlib import Path
 
 import gradio as gr
-from langchain_core.messages import AIMessage, HumanMessage, ToolMessage
+from langchain_core.messages import HumanMessage
 
 from study_assistant.agents.graph import build_agent
 from study_assistant.config import settings
@@ -41,8 +43,13 @@ def _get_agent():
 
 def render_trace(events: list[str]) -> str:
     if not events:
-        return "### Trace\n_Send a message to see the agent's tool-calling loop._"
+        return "### Trace\n_Send a message to see Planner -> Retrieval -> Reasoning -> Evaluation -> Response run._"
     return "### Trace\n" + "\n\n".join(events)
+
+
+def _preview(value, limit: int = 400) -> str:
+    text = str(value)
+    return text if len(text) <= limit else text[:limit] + "..."
 
 
 def render_log(n: int = 20) -> str:
@@ -70,24 +77,36 @@ def on_send(user_text: str, chat: list[dict], history: list):
     ]
     new_history = history + [HumanMessage(content=user_text)]
     events: list[str] = []
+    seen: dict = {}
     agent = _get_agent()
 
-    prev_len = len(new_history)
     final_messages = new_history
     try:
         for state in agent.stream({"messages": new_history}, stream_mode="values"):
-            msgs = state["messages"]
-            for m in msgs[prev_len:]:
-                if isinstance(m, AIMessage) and m.tool_calls:
-                    for call in m.tool_calls:
-                        events.append(f"**Tool call:** `{call['name']}({call['args']})`")
-                elif isinstance(m, ToolMessage):
-                    preview = str(m.content)[:400]
-                    events.append(f"**Tool result:** `{m.name}` ->\n```\n{preview}\n```")
-                elif isinstance(m, AIMessage) and m.content:
-                    chat[-1]["content"] = m.content
-            prev_len = len(msgs)
-            final_messages = msgs
+            retry = state.get("retry_count", 0)
+            tag = f" (retry {retry})" if retry else ""
+
+            if state.get("intent") is not None and seen.get("intent") != (state["intent"], state.get("detail"), retry):
+                seen["intent"] = (state["intent"], state.get("detail"), retry)
+                events.append(f"**Planner{tag}:** intent=`{state['intent']}`, detail=`{state.get('detail', '')}`")
+
+            if state.get("evidence") is not None and seen.get("evidence") != (state["evidence"], retry):
+                seen["evidence"] = (state["evidence"], retry)
+                events.append(f"**Retrieval{tag}:**\n```\n{_preview(state['evidence'])}\n```")
+
+            if state.get("chosen") is not None and seen.get("chosen") != (state["chosen"], retry):
+                seen["chosen"] = (state["chosen"], retry)
+                c = state["chosen"]
+                events.append(f"**Reasoning{tag}:** confidence={c.confidence:.2f} -- {_preview(c.answer, 200)}")
+
+            if state.get("grounded") is not None and seen.get("grounded") != (state["grounded"], retry):
+                seen["grounded"] = (state["grounded"], retry)
+                events.append(f"**Evaluation{tag}:** grounded=`{state['grounded']}`")
+
+            if state.get("final_answer"):
+                chat[-1]["content"] = state["final_answer"]
+
+            final_messages = state["messages"]
             yield "", chat, final_messages, render_trace(events), render_log()
     except Exception as e:
         chat[-1]["content"] = "Something went wrong answering that. Please try again."
@@ -106,9 +125,10 @@ def build_app() -> gr.Blocks:
     with gr.Blocks(title="Personal AI Study Workflow Assistant") as demo:
         gr.Markdown(
             "# Personal AI Study Workflow Assistant\n"
-            "Chat with your study agent. **Trace** shows each tool call the agent "
-            "makes this turn; **Log** tails the guardrail/audit log (retrieval "
-            "confidence, escalations, errors)."
+            "Chat with your study agent. **Trace** shows the five-agent pipeline "
+            "(Planner, Retrieval, Reasoning, Evaluation, Response) run this turn; "
+            "**Log** tails the guardrail/audit log (retrieval confidence, "
+            "escalations, errors)."
         )
         history_state = gr.State([])
 

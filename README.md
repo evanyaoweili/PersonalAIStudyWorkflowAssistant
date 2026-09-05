@@ -8,18 +8,18 @@ study materials and plan your study time.
 - **Material Q&A (RAG)** — ingest notes/PDFs and ask questions grounded in them.
 - **Study planning** — build a day-by-day study schedule from a list of tasks,
   deadlines, and available hours per day.
-- Built as a [LangGraph](https://github.com/langchain-ai/langgraph) ReAct agent
-  with OpenAI as the underlying model, exposing the above as tools.
+- Built as a [LangGraph](https://github.com/langchain-ai/langgraph) multi-agent pipeline
+  (Planner, Retrieval, Reasoning, Evaluation, Response) with OpenAI as the underlying model.
 
-See [ARCHITECTURE.md](ARCHITECTURE.md) for how the pieces fit together — the agent's
-tool-calling loop, the RAG pipeline, and why course roster data is served through tools
-instead of being ingested into the vector store.
+See [ARCHITECTURE.md](ARCHITECTURE.md) for how the pieces fit together — the multi-agent
+pipeline and its feedback loop, the RAG pipeline, and why course roster data is served
+through direct lookups instead of being ingested into the vector store.
 
 ## Project layout
 
 ```
 src/study_assistant/
-  agents/       LangGraph agent + tool definitions
+  agents/       LangGraph multi-agent pipeline (nodes.py) + tool definitions
   ingestion/    document loading, chunking, embeddings, vector store
   rag/          retrieval-augmented Q&A over ingested materials
   planning/     study task/schedule models and scheduling logic
@@ -88,8 +88,9 @@ study-assistant gui
 
 The GUI needs `gradio`, an optional extra so CLI-only users don't need to install it:
 `pip install -e ".[gui]"`. It opens in your browser with a chat pane on the left and two
-tabs on the right — **Trace** (the tool calls the agent makes this turn, live) and **Log**
-(a tail of the guardrail/audit log from `observability.py`).
+tabs on the right — **Trace** (the Planner/Retrieval/Reasoning/Evaluation/Response
+pipeline running this turn, live) and **Log** (a tail of the guardrail/audit log from
+`observability.py`).
 
 ### Debugging
 
@@ -97,8 +98,8 @@ tabs on the right — **Trace** (the tool calls the agent makes this turn, live)
 study-assistant --debug chat
 ```
 
-`--debug` turns on LangChain's chain/tool-call tracing plus verbose HTTP logging, so you
-can see exactly which tool the agent picked and why. There are also two VS Code "Run and
+`--debug` turns on LangChain's chain tracing plus verbose HTTP logging, so you can see
+every pipeline agent's LLM call and output. There are also two VS Code "Run and
 Debug" configurations (`.vscode/launch.json`) — "study-assistant: chat (debug)" and
 "study-assistant: ingest (debug)" — for stepping through with breakpoints instead.
 
