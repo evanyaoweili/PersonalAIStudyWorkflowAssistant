@@ -18,6 +18,7 @@ import re
 from langchain_core.messages import AIMessage
 from langchain_openai import ChatOpenAI
 
+from study_assistant.agents import tot
 from study_assistant.agents.state import (
     Intent,
     PipelineState,
@@ -83,7 +84,7 @@ PLANNER_PROMPT = (
     "act on it.\n\n"
     "Intents:\n"
     "- study_materials: a question about ingested notes/PDFs/course content\n"
-    "- course_info: asking about the course name, term, or assignment list\n"
+    "- course_info: asking about the course name/term/description, or its assignment list\n"
     "- roster: asking to list students and/or teachers\n"
     "- person_info: asking about a specific named student or teacher\n"
     "- next_priority: asking what to work on next / what's the priority\n"
@@ -93,8 +94,10 @@ PLANNER_PROMPT = (
     "detail = the question text (study_materials), person name (person_info), "
     "or assignment name (mark_completed). For roster: exactly 'students' if "
     "only students were asked for, 'teachers' if only teachers were asked "
-    "for, or '' if both/unspecified. Empty string for other intents "
-    "otherwise.\n\n"
+    "for, or '' if both/unspecified. For course_info: exactly 'description' "
+    "if only the course name/term/description was asked for (not "
+    "assignments), or '' if the assignment list was asked for or the request "
+    "is general/unspecified. Empty string for other intents otherwise.\n\n"
     "If the latest message refers to something earlier in the conversation "
     "(e.g. 'it', 'that one'), resolve the reference using the conversation "
     "history so `detail` is self-contained."
@@ -146,7 +149,9 @@ def _try_build_schedule(goal: str) -> str:
 
 _RETRIEVERS = {
     "study_materials": lambda detail, goal: ask_study_materials.invoke({"question": detail or goal}),
-    "course_info": lambda detail, goal: get_course_info.invoke({}),
+    "course_info": lambda detail, goal: get_course_info.invoke(
+        {"include_assignments": detail != "description"}
+    ),
     "roster": lambda detail, goal: list_roster.invoke(
         {"group": detail if detail in ("students", "teachers") else "all"}
     ),
@@ -168,9 +173,12 @@ def retrieval_node(state: PipelineState) -> dict:
 # ---------------------------------------------------------------------------
 # Reasoning Agent -- lightweight Tree-of-Thought, only where branching helps
 # ---------------------------------------------------------------------------
-# Deterministic lookups: one candidate, no point generating alternatives for
-# a factual answer that's either right or missing.
-_PASSTHROUGH_INTENTS = {"course_info", "roster", "person_info", "mark_completed"}
+# Deterministic lookups and direct factual retrieval: one candidate, no ToT
+# branching. Per the Checkpoint 4.1 (updated) design: "A simple question such
+# as finding a due date does not require ToT because retrieval can provide a
+# direct answer" -- rag/qa.py already grounds+hedges its own answer, so this
+# outer layer would just be re-branching an already-complete response.
+_PASSTHROUGH_INTENTS = {"course_info", "roster", "person_info", "mark_completed", "study_materials"}
 
 REASONING_PROMPT = (
     f"You are the Reasoning Agent for {APP_DESCRIPTION} Given the user's goal "
@@ -202,6 +210,11 @@ def reasoning_node(state: PipelineState) -> dict:
         confidence = 0.0 if _looks_ungrounded(evidence) else 1.0
         candidate = ReasoningCandidate(answer=evidence, confidence=confidence, rationale="direct lookup")
         return {"candidates": [candidate], "chosen": candidate}
+
+    if intent == "next_priority":
+        # Real Tree-of-Thought: beam search over candidate next-assignments,
+        # scored on urgency/prerequisite-readiness/evidence-quality. See tot.py.
+        return tot.run_next_priority_tot(_llm())
 
     structured = _llm().with_structured_output(ReasoningCandidates)
     result: ReasoningCandidates = structured.invoke(
@@ -241,7 +254,12 @@ def evaluation_node(state: PipelineState) -> dict:
     return {"grounded": grounded}
 
 
-_RETRYABLE_INTENTS = {"study_materials", "next_priority"}
+_RETRYABLE_INTENTS = {"study_materials"}
+# next_priority isn't retried: its beam search already explores alternatives
+# (urgency/prerequisite/readiness strategies) deterministically from the same
+# underlying data every time -- a retry would just recompute the identical
+# result, since there's no "broadened query" concept for it like there is for
+# RAG's checkpoint filter.
 
 
 def route_after_evaluation(state: PipelineState) -> str:

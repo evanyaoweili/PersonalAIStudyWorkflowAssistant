@@ -70,6 +70,7 @@ flowchart TB
 | [`agents/tools.py`](src/study_assistant/agents/tools.py) | Wraps the functions above as LangChain `@tool`s: `ask_study_materials`, `plan_study_schedule`, `get_course_info`, `get_person_info`, `list_roster`, `whats_next`, `mark_assignment_completed`. Invoked directly by the Retrieval Agent (`.invoke(...)`), not chosen by an LLM's own tool-calling loop. |
 | [`agents/state.py`](src/study_assistant/agents/state.py) | `PipelineState` (the shared state threaded through the graph) and the structured-output Pydantic models (`PlannerDecision`, `ReasoningCandidate(s)`, `ScheduleExtract`). |
 | [`agents/nodes.py`](src/study_assistant/agents/nodes.py) | The five agents themselves as plain functions over `PipelineState`, plus the evaluation-routing and retry logic. See [Multi-agent pipeline](#multi-agent-pipeline-capstone-checkpoint-51) below. |
+| [`agents/tot.py`](src/study_assistant/agents/tot.py) | Beam-search Tree-of-Thought for the `next_priority` intent — candidate generation, scoring, pruning. See [Tree-of-Thought reasoning](#tree-of-thought-reasoning-capstone-checkpoint-41-updated) below. |
 | [`agents/graph.py`](src/study_assistant/agents/graph.py) | Wires `nodes.py`'s functions into a LangGraph `StateGraph` with the sequential core, the conditional evaluation branch, and the retry loop. |
 | [`gui.py`](src/study_assistant/gui.py) | Optional Gradio chat UI (`study-assistant gui`, needs the `gui` extra). See [GUI](#gui) below. |
 
@@ -245,7 +246,7 @@ be checked before it reaches the learner."*
 |---|---|---|
 | **Planner** | Classifies the request into one of 8 intents (`study_materials`, `course_info`, `roster`, `person_info`, `next_priority`, `mark_completed`, `scheduling`, `general`) and extracts a self-contained `detail` (resolving references like "it" against conversation history), via `with_structured_output(PlannerDecision)`. | Yes |
 | **Retrieval** | Invokes the one existing `agents/tools.py` tool matching the intent (`.invoke(...)`, not LLM-chosen) and collects its output as `evidence`. Reuses every guardrail/log line already built into those tools. | No — plain function dispatch |
-| **Reasoning** | For open-ended intents (`study_materials`, `next_priority`, `general`), proposes up to 2 candidate answers with self-rated confidence via `with_structured_output(ReasoningCandidates)` — a lightweight Tree-of-Thought, capped at 2 branches per the doc's own caution against "excessive branching wast[ing] time and tokens." For deterministic lookups (`course_info`, `roster`, `person_info`, `mark_completed`), skips branching entirely — one candidate, confidence 1.0 unless the evidence signals a not-found/empty result. | Only for open-ended intents |
+| **Reasoning** | For `next_priority` only, runs a real beam-search Tree-of-Thought ([`agents/tot.py`](src/study_assistant/agents/tot.py) — see [Tree-of-Thought reasoning](#tree-of-thought-reasoning-capstone-checkpoint-41-updated) below). For `general`, one direct candidate. Everything else — including `study_materials` — is a passthrough: one candidate, confidence 1.0 unless the evidence signals a not-found/empty result. | Only for `next_priority`/`general` |
 | **Evaluation** | Gates on `chosen.confidence >= 0.5` and the evidence not matching a known not-found/no-evidence marker. `general` intent always passes (nothing to ground). Routes to Response if grounded, or back to Retrieval (capped at 1 retry) if not. | No |
 | **Response** | Formats the approved result for the learner. Deterministic-lookup and scheduling intents pass the evidence straight through (no LLM call — nothing to add). Open-ended intents get one LLM polish call. If Evaluation never grounded the answer (even after the retry), returns a fixed "I don't have enough reliable information" message instead of guessing. | Only for open-ended intents |
 
@@ -267,10 +268,10 @@ checkpoint filter (see above) to widen to an unfiltered MMR search — a concret
 instance of "the evaluator sends the request back to Retrieval... instead of restarting
 the entire workflow."
 
-The doc's "graph-based reasoning" branch (small exploration inside the Reasoning stage)
-is the capped 2-candidate proposal above, not a deep tree search — the doc itself frames
-ToT as needing limited branch count and depth, and this project's evaluation showed
-little value in branching factual lookups at all (see the passthrough-intent list above).
+The doc's "graph-based reasoning" branch (small exploration inside the Reasoning stage) is
+the beam search described next — it only runs for `next_priority`; every other intent,
+`study_materials` included, bypasses it entirely per the doc's own instruction that direct
+factual questions don't need it.
 
 ### Compatibility with the CLI and GUI
 
@@ -295,3 +296,66 @@ just doesn't find the real answer sitting one intent over. This is the direct, h
 of the doc's own design choice (fixed specialized roles over one flexible agentic loop);
 fixing it would mean letting Planner select multiple intents per turn, which reintroduces
 exactly the harder-to-check complexity the design explicitly trades away.
+
+## Tree-of-Thought reasoning (Capstone Checkpoint 4.1, updated)
+
+The updated Checkpoint 4.1 doc replaces the placeholder 2-candidate Reasoning step (above)
+with a real beam search, scoped deliberately narrow per its own instruction: *"A simple
+question such as finding a due date does not require ToT because retrieval can provide a
+direct answer... deciding what the learner should work on next may involve several
+possible reasoning paths."* So it only runs for the `next_priority` intent — everything
+else, `study_materials` included, is a passthrough (see the Reasoning row above).
+
+Implemented in [`agents/tot.py`](src/study_assistant/agents/tot.py):
+
+**A thought** = one proposed next assignment. **A branch** = one strategy for proposing
+it. **Depth 1** generates and scores candidates; **depth 2** elaborates the survivors into
+an actionable recommendation. Branch width and beam width are small on purpose, matching
+the doc ("probably around three candidate choices per step... a depth limit of
+approximately three"):
+
+- **`BRANCH_WIDTH = 3`** — up to 3 candidate strategies: *urgency* (nearest due date),
+  *prerequisite_order* (earliest pending checkpoint number — checkpoints build on each
+  other), *readiness* (best `rag/qa.py` evidence match for that checkpoint's requirements).
+  Two strategies agreeing on the same assignment collapse to one candidate, so the actual
+  branch count is "up to 3," not always exactly 3.
+- **`BEAM_WIDTH = 2`** — after scoring, only the top 2 candidates survive; the rest are
+  pruned, per the doc's own example ("It might keep the two strongest options... while
+  dropping the lowest-scoring option").
+
+**Scoring** deliberately uses real computed signals instead of an LLM's self-rated
+confidence, mirroring the exact tension the doc's worked example calls out — nearest
+deadline vs. preparation vs. unfinished prerequisite material:
+
+| Criterion | Signal | Source |
+|---|---|---|
+| Urgency | Due date ranked *relative to the current pending set* — nearest gets 1.0, furthest gets 0.0 — not an absolute calendar window. An absolute day-count formula saturates at a flat 1.0 for any overdue item, which silently ties every overdue assignment together and lets a secondary criterion (evidence) decide by default — a real bug found via testing, not a hypothetical. | `course_data.json` due dates |
+| Prerequisite readiness | 1.0 if *specifically* the immediately-preceding checkpoint is completed (or there isn't one), else 0.5 — checking for "any earlier one done" instead of the immediate one was a second bug: finishing 1.1 alone wrongly granted every later checkpoint full credit. | `course_progress.json` |
+| Evidence quality | Chroma L2 distance for that checkpoint's requirements, mapped to [0,1] | `rag/qa.py`'s checkpoint-filtered search |
+
+A candidate's score is the average of the three. The two survivors each get one LLM call
+("thought elaborator") that turns the winning strategy/strategies into a short actionable
+recommendation; the higher-scoring elaboration becomes `chosen`, feeding into Evaluation
+exactly like any other `ReasoningCandidate` — no changes needed to Evaluation, the retry
+route, or Response to plug this in.
+
+**Not carried over from the doc, and why:**
+
+- **CrewAI / MCP** — the doc maps thought-generator/critic to CrewAI agents and shared
+  branch state to MCP. This project uses plain LangGraph functions and `PipelineState`
+  for the same roles instead of adding two more frameworks for equivalent behavior; the
+  role separation (generate → score/prune → elaborate → select) is real, just implemented
+  in what's already here.
+- **Instructor feedback as a scoring criterion** — the doc lists it as a candidate
+  criterion, but no structured feedback data exists anywhere in this project to score
+  against, so it's omitted rather than faked.
+- **Hard pruning for "not found in retrieved material"** — for RAG answers (`ask_study_
+  materials`) this is already a hard block (`rag/qa.py`'s no-evidence guardrail). For
+  `next_priority`, a candidate's core fact (it exists, it's due on date X) comes from
+  `course_data.json` directly, not RAG — evidence quality here is a secondary "how well-
+  documented is this checkpoint" signal, not the recommendation's core groundedness, so
+  it's a soft scoring factor rather than a hard reject.
+- **Retry on low confidence** — `next_priority` was removed from the set of intents
+  Evaluation will retry (see `_RETRYABLE_INTENTS` in `nodes.py`): the beam search already
+  deterministically explores alternatives every time from the same underlying data, so a
+  retry would just recompute an identical result.

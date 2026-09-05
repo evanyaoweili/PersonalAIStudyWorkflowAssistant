@@ -38,13 +38,17 @@ def _format_assignment(a) -> str:
 
 
 @tool
-def get_course_info() -> str:
-    """Look up the current course's name, term, and list of assignments."""
+def get_course_info(include_assignments: bool = True) -> str:
+    """Look up the current course's name and term, and optionally its
+    assignment list. Set include_assignments=False when only the course
+    name/term/description was asked for, not the assignments."""
     info = _get_course_info()
     if not info.get("course"):
         return "No course data available."
-    lines = [f"Course: {info['course']}", f"Term: {info['term']}", "Assignments:"]
-    lines += [_format_assignment(a) for a in info["assignments"]]
+    lines = [f"Course: {info['course']}", f"Term: {info['term']}"]
+    if include_assignments:
+        lines.append("Assignments:")
+        lines += [_format_assignment(a) for a in info["assignments"]]
     return "\n".join(lines)
 
 
