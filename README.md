@@ -24,7 +24,8 @@ src/study_assistant/
   rag/          retrieval-augmented Q&A over ingested materials
   planning/     study task/schedule models and scheduling logic
   config.py     environment-based settings
-  main.py       CLI entry point (ingest / chat)
+  main.py       CLI entry point (ingest / chat / gui)
+  gui.py        optional Gradio chat UI with live Trace/Log panels
 tests/          pytest suite
 data/materials/ drop your study materials (PDFs, .txt, .md) here
 ```
@@ -80,7 +81,15 @@ study-assistant ingest
 
 # Chat with the agent
 study-assistant chat
+
+# Launch the Gradio chat GUI (needs the "gui" extra, see below)
+study-assistant gui
 ```
+
+The GUI needs `gradio`, an optional extra so CLI-only users don't need to install it:
+`pip install -e ".[gui]"`. It opens in your browser with a chat pane on the left and two
+tabs on the right — **Trace** (the tool calls the agent makes this turn, live) and **Log**
+(a tail of the guardrail/audit log from `observability.py`).
 
 ### Debugging
 

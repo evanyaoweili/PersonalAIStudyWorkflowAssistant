@@ -39,6 +39,17 @@ def cmd_chat(_args: argparse.Namespace) -> None:
         print(result["messages"][-1].content)
 
 
+def cmd_gui(_args: argparse.Namespace) -> None:
+    try:
+        from study_assistant.gui import launch
+    except ImportError as e:
+        raise SystemExit(
+            "The GUI needs the optional 'gui' extra. Install it with:\n"
+            '  pip install -e ".[gui]"'
+        ) from e
+    launch()
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(prog="study-assistant")
     parser.add_argument(
@@ -53,6 +64,9 @@ def main() -> None:
 
     chat_parser = subparsers.add_parser("chat", help="Chat with the study assistant agent")
     chat_parser.set_defaults(func=cmd_chat)
+
+    gui_parser = subparsers.add_parser("gui", help="Launch the Gradio chat GUI")
+    gui_parser.set_defaults(func=cmd_gui)
 
     args = parser.parse_args()
 

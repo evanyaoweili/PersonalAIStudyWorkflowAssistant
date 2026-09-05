@@ -62,6 +62,33 @@ flowchart TB
 | [`planning/scheduler.py`](src/study_assistant/planning/scheduler.py) | Pure, deterministic greedy algorithm — no LLM call. Allocates daily hours to tasks, nearest deadline first, ties broken by priority. |
 | [`agents/tools.py`](src/study_assistant/agents/tools.py) | Wraps the functions above as LangChain `@tool`s: `ask_study_materials`, `plan_study_schedule`, `get_course_info`, `get_person_info`. |
 | [`agents/graph.py`](src/study_assistant/agents/graph.py) | Builds the agent: `ChatOpenAI` + the tool list + a system prompt, via LangChain's `create_agent` (a prebuilt LangGraph ReAct-style tool-calling loop). |
+| [`gui.py`](src/study_assistant/gui.py) | Optional Gradio chat UI (`study-assistant gui`, needs the `gui` extra). See [GUI](#gui) below. |
+
+## GUI
+
+`study-assistant gui` launches a Gradio app with a chat pane and two live tabs:
+
+- **Trace** — built by calling `agent.stream(..., stream_mode="values")` instead of
+  `.invoke()`. LangGraph yields the full message list after every step, so diffing
+  consecutive yields exposes each `AIMessage` tool call and matching `ToolMessage` result
+  as they happen, not just the final answer.
+- **Log** — tails `data/guardrail_events.log`, the same file `observability.py` writes to
+  for the CLI. Independent of `--debug`, which is far noisier (raw HTTP + full LangChain
+  trace) and not meant for this kind of at-a-glance view.
+
+Conversation history is threaded across turns via a `gr.State` holding the LangChain
+message list (not just chat display text), so follow-up questions ("how many points is
+it worth?") resolve correctly against prior turns — the CLI's `cmd_chat`, by contrast,
+sends only the latest message each turn and has no cross-turn memory.
+
+This was adapted from a different project's Gradio demo
+(`Module5/Local-Agent-Demo`), which is built on a from-scratch Ollama+MCP agent loop with
+no LangChain involved at all. Only the UI shape (chat + live side panels) carried over;
+the event-handling logic here is written from scratch against this project's LangGraph
+agent and tools. That demo's Context/Memory/Tools panels weren't ported, since they map to
+concepts (windowed short-term memory, MCP tool discovery, a separate long-term memory
+store) that don't exist in this project's architecture — Trace and Log are what's
+actually meaningful here.
 
 ## Two commands, two flows
 
