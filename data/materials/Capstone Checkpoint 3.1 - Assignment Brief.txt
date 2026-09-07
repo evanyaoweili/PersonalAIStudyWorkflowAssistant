@@ -1,0 +1,38 @@
+Required Capstone Checkpoint 3.1: RAG and Retrieval Design Integration - Section C
+Due: Aug 10 by 9:29am | Points: 1 | Available after Jul 31 at 6am
+Submitting: a text entry box or a file upload | File Types: pdf and docx
+
+Learning outcome addressed
+6. Refine the capstone agent design by incorporating RAG and data-grounding decisions.
+
+In Modules 1 and 2, you defined your agent's goal, reasoning loop, memory structure, and
+tool usage. In this module, you examined how RAG changes how agents access knowledge and
+how vector databases enable semantic search and external memory.
+
+This checkpoint asks you to move from architectural intent to grounded implementation. You
+will determine whether your agent requires retrieval, and if so, integrate a retrieval layer
+to improve reliability and data grounding. The focus is on making an explicit architectural
+decision and demonstrating how retrieval changes system behavior.
+
+Directions
+
+Revisit your capstone agent from Required Capstone Checkpoints 1.1 and 2.1. Based on the
+problem your agent is solving, refine your design to incorporate retrieval decisions.
+
+In a short written submission and working agent update, address the following:
+- Decide whether retrieval is required for your agent. Clearly explain your reasoning.
+- If retrieval is required, describe how you will integrate a semantic retrieval mechanism
+  using an external data source.
+- Demonstrate that retrieval meaningfully influences the agent's output (e.g., by explaining
+  an example in which retrieved context changes or grounds the response).
+- Briefly describe key retrieval design choices, such as data source selection, document
+  segmentation, or chunking approaches, and how many results are retrieved.
+- Identify one potential retrieval-related failure mode and explain how your design reduces
+  or manages that risk.
+
+If you determine that retrieval is not required for your agent, provide a clear architectural
+justification for why a non-RAG design remains reliable for your use case.
+
+Submission instructions
+Submit a short written design update (approximately one to two pages). Suggested word count:
+600-900 words.

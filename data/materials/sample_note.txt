@@ -1,0 +1,12 @@
+CMU AI Agent Course - Sample Study Note
+
+Retrieval-Augmented Generation (RAG) combines a retriever, which fetches
+relevant chunks of text from a knowledge base, with a generator (an LLM)
+that uses those chunks as context to answer a question. This grounds the
+model's answer in real source material and reduces hallucination.
+
+The typical RAG pipeline has three stages:
+1. Ingestion - split documents into chunks and embed them into a vector store.
+2. Retrieval - given a query, embed it and find the most similar chunks.
+3. Generation - pass the retrieved chunks plus the query to an LLM to
+   produce a grounded answer.

@@ -1,0 +1,51 @@
+Required Capstone Checkpoint 5.1: Multi-Agent Architecture and Coordination Plan - Section C
+Due: Aug 24 by 9:29am | Points: 1 | Available after Aug 14 at 6am
+Submitting: a text entry box or a file upload | File Types: pdf and docx
+
+Learning outcome addressed
+4. Refine a capstone agent concept by specifying agent roles, coordination strategy, and
+   communication approach for a multi-agent workflow.
+
+At this stage, you will refine your capstone agent concept by designing a multi-agent
+architecture that aligns with your selected problem. This checkpoint focuses on making
+deliberate design decisions about agent roles, coordination strategy, and communication
+approach, rather than implementation. The goal is to demonstrate architectural judgment by
+clearly defining how multiple agents will collaborate to solve your problem and why a
+multi-agent approach is appropriate.
+
+Directions
+
+You will develop a structured architecture plan that outlines how your system will be
+organized as a multi-agent workflow. This includes defining the number of agents, assigning
+roles and responsibilities, and specifying how agents will interact through coordination and
+communication. Your design should reflect a clear understanding of trade-offs, including how
+coordination decisions impact system reliability, complexity, and performance.
+
+In your submission, address the following questions:
+- What problem is your capstone agent designed to solve, and why does it require a
+  multi-agent approach rather than a single agent? (For instance, a research-heavy task may
+  benefit from a planner agent, a researcher agent, and a writer agent working together.)
+- How many agents will your system include, and how did you determine the appropriate
+  number? Consider task complexity, role separation, and diminishing returns from adding more
+  agents.
+- What are the defined roles and responsibilities of each agent?
+- What coordination strategy will govern how agents interact (for example, sequential,
+  iterative, graph-based, or hybrid)? Sequential workflows resemble assembly lines, while
+  graph-based workflows resemble project networks with dependencies.
+- How will agents communicate and exchange information throughout the workflow? One-way
+  communication for efficiency, two-way for validation, or brainstorming for exploring
+  multiple paths.
+- What trade-offs did you consider in your design, particularly in terms of reliability,
+  complexity, and coordination overhead? For example, adding feedback loops may improve
+  reliability but increase latency.
+- How does your proposed architecture support effective and scalable problem solving?
+
+Aim for one to two pages, focusing on clarity and rationale rather than implementation
+details. Include:
+1. A clear description of your multi-agent system design
+2. Defined agent roles and responsibilities
+3. A description of the coordination and communication strategy
+4. A rationale for your design decisions based on module concepts
+
+Submission instructions
+Suggested word count: 400-600 words.

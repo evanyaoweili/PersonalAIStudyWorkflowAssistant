@@ -1,0 +1,104 @@
+Personal AI Study and Life Assistant
+Capstone Agent Design Refinement
+Capstone Checkpoint 2.1
+Student: Yaowei Li
+Date: August 2, 2026
+
+Refined Agent Concept
+
+My original capstone concept was a Personal AI Study and Life Assistant that could help
+a busy learner manage course deadlines, email, calendar events, health routines, family
+tasks, and weekly progress summaries. Based on the feedback from Checkpoint 1.1, I am
+narrowing the first version of the project to a more specific and testable scope: a
+Personal AI Study Workflow Assistant focused on CMU course progress and near-term
+learning responsibilities.
+
+The refined agent is designed to answer one practical question reliably: What should I
+work on next for my course, and what information do I need to complete it? Instead of
+trying to manage every area of life at once, the first version will focus on course
+modules, assignment due dates, discussion boards, live session recordings, lab
+transcripts, capstone checkpoints, and a small amount of personal study memory. This
+narrower scope makes the agent easier to evaluate and reduces the risk of over-
+automation.
+
+Reasoning Loop
+
+The agent will use a ReAct-style reasoning loop: reason, act, observe, revise, and
+respond. First, the agent interprets the user's request and identifies the task goal.
+For example, if the learner asks, "What should I work on next for this module?", the
+agent should reason that it needs the module requirements, due dates, prior feedback,
+relevant lab material, and current course progress before making a recommendation.
+
+Second, the agent chooses actions. These actions may include retrieving the assignment
+instructions, checking module requirements, searching short-term notes, reading prior
+capstone drafts, or reviewing lab transcripts. Third, the agent observes the results and
+compares them with the goal. If the assignment asks for reasoning loops, memory, tool
+use, and prompt-only failure modes, the agent should verify that the draft addresses all
+of those items before presenting it.
+
+Fourth, the agent revises its plan if information is missing or inconsistent. For
+example, if the course page cannot be accessed, the agent should not invent deadlines or
+requirements. It should ask the user to log in or provide the assignment text. Finally,
+the agent responds with a prioritized recommendation, draft, checklist, or summary. This
+loop makes the assistant more reliable because each answer is grounded in observed
+course material rather than generated only from memory.
+
+Memory Requirements
+
+The agent needs both short-term memory and long-term memory. Short-term memory is needed
+during a single work session. It tracks the current user request, assignment directions,
+retrieved transcript details, checklist items, and draft revisions. For example, while
+helping with a capstone checkpoint, the agent should remember which rubric requirements
+have already been addressed and which still need improvement.
+
+Long-term memory is needed across sessions. It stores stable preferences, recurring
+course patterns, completed assignments, prior feedback, project decisions, and user-
+specific constraints. For example, the agent should remember that the project scope has
+been narrowed from a broad life assistant to a course-focused study workflow assistant,
+and it should preserve design decisions such as which tools support course retrieval,
+document reading, memory search, and reminders. Long-term memory also helps avoid
+repeated questions and supports weekly study planning.
+
+The agent should separate memory types carefully. Sensitive personal information should
+not be stored unless necessary, and the prototype should use public, synthetic, or
+anonymized examples. For the course prototype, long-term memory can be represented by
+small local files such as project_memory.json, course_tasks.json, and
+prior_feedback.json.
+
+External Tool Use
+
+External tools are necessary because a prompt-only model cannot know the current state
+of the course. The agent will use a course retrieval tool to inspect assignment
+directions, module completion status, due dates, and live session information. It will
+use a document reading tool to read prior capstone submissions and lab transcripts. It
+will use a memory search tool to retrieve past project decisions and feedback. It may
+also use a reminder tool to schedule follow-up actions, such as reminding the learner to
+review study notes before a course deadline.
+
+A specific example is weekly course planning. When a learner asks what to work on next,
+the agent should retrieve current module requirements, due dates, prior feedback, and
+relevant learning materials. It should then compare the open items, identify the
+highest-priority task, and present a concise study plan grounded in those observations.
+
+Improvement Over Prompt-Only Approach
+
+A prompt-only assistant can produce a polished answer, but it can easily fail in ways
+that matter. One failure mode is confidently answering from incomplete or outdated
+information. For example, it might draft an assignment response without checking the
+actual rubric, miss the required word count, or fail to include memory requirements.
+Another failure mode is losing continuity. It might forget prior feedback, such as the
+need to narrow the project scope.
+
+The refined design addresses these failures through tools, memory, and a reasoning loop.
+Tools provide grounding in current course data. Short-term memory keeps the active task
+organized. Long-term memory preserves prior project decisions and feedback. The ReAct
+loop forces the agent to observe before responding and to revise when information is
+missing.
+
+This makes the agent more than a chatbot. It becomes a structured study workflow
+assistant that can reason over multiple steps, use tools when needed, remember relevant
+context, and explain its recommendations. For the first implementation, I would build it
+as a local prototype using synthetic course data and sample documents. Later versions
+could connect to real systems, but only with clear guardrails and user confirmation
+before taking high-impact actions such as uploading a learner-approved file, sending
+emails, or changing calendar events.

@@ -1,0 +1,66 @@
+Personal AI Study and Life Assistant
+Initial Agent Design
+Capstone Checkpoint 1.1
+Student: Yaowei Li
+Date: July 26, 2026
+
+My proposed agent is a Personal AI Study and Life Assistant. The problem I want to solve is
+that busy learners often manage many small but important responsibilities across different
+systems: course deadlines, email, calendar events, health routines, family tasks, and personal
+notes. A normal chatbot can answer questions, but it does not reliably remember context, check
+external information, or take structured actions. This agent would help the user turn scattered
+information into organized next steps.
+
+The assistant's main purpose is to support routine workflows that I currently repeat manually.
+Examples include checking CMU course tasks, identifying upcoming deadlines, summarizing
+important emails, creating reminders, tracking health routines, and producing weekly progress
+summaries. This is a good personal assistant use case because it involves drafting,
+coordination, routine workflows, and decision support.
+
+The system would use an LLM as the central reasoning component. The LLM would interpret the
+user's request, decide whether it can answer directly, or determine whether it needs tools. For
+example, if the user asks, "What should I do next for my CMU course?", the assistant should not
+guess. It should check memory, course task data, calendar deadlines, and recent notes before
+giving a prioritized plan. This follows the lab concept that agents need tools because an LLM
+alone only has language reasoning, while tools allow it to interact with current data and external
+systems.
+
+The architecture would include a main assistant agent and several specialized sub-agents. The
+Course Agent would manage course deadlines, incomplete assignments, live sessions, and
+study priorities. The Email Agent would summarize important messages and draft replies, but it
+would not send emails automatically. The Health/Routine Agent would track supplements,
+exercise, sleep notes, and reminders. A Weekly Review Agent could combine calendar events,
+completed tasks, notes, and open loops into a short progress summary.
+
+The assistant would use several tools or functions. A memory search tool would retrieve prior
+preferences and completed tasks. A course deadline tool would return upcoming assignments
+and unfinished course items. An email summary tool would identify important recent messages.
+A reminder tool would schedule future reminders. A draft email tool would create text for review.
+A web search tool could be used when memory is not enough or when current information is
+required.
+
+The reasoning flow would follow a ReAct-style loop: understand the goal, choose an action,
+observe the result, revise if needed, and then respond. For example, if course data is missing,
+the assistant should say what information is unavailable rather than inventing an answer. If
+multiple tasks are due, it should compare urgency and importance before recommending an
+order.
+
+Safety is important because a personal assistant may touch sensitive areas such as email,
+calendar, files, or purchases. The assistant should freely summarize, draft, and remind, but it
+must ask for confirmation before sending emails, deleting files, booking travel, making
+purchases, or changing calendar events. This keeps the system useful while reducing risk.
+
+For the first version, I would implement this as a local or mock-data prototype rather than a fully
+connected live system. The prototype can use sample files such as memory.json,
+course_tasks.json, and mock_emails.json. This is safer, easier to test, and still demonstrates the
+key agentic AI concepts: LLM reasoning, tool calling, memory retrieval, multi-agent coordination,
+and safety guardrails.
+
+Overall, this project frames a practical personal assistant that helps a learner manage daily
+responsibilities and course progress. It is not just a chatbot; it is an agent that reasons, uses
+tools, remembers context, delegates subtasks, and follows safety rules before taking high-impact
+actions.
+
+Note: this initial concept was later narrowed in Checkpoint 2.1 to a course-focused Personal AI
+Study Workflow Assistant, dropping the email/health/life-admin scope in favor of a smaller,
+more testable design.

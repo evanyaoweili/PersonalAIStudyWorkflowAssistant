@@ -1,0 +1,85 @@
+Capstone Checkpoint 6.1
+Safety Guardrails and Human Intervention Plan
+Personal AI Study Workflow Assistant
+Student: Yaowei Li
+AI Agent Development Program
+Date: August 30, 2026
+
+Capstone Agent Purpose and Main Risks
+
+My capstone project is a Personal AI Study Workflow Assistant. Its purpose is to help a
+learner retrieve course information, understand assignment requirements, organize study
+activities, and recommend what to work on next. For simple factual questions, the system
+can use retrieval to provide a grounded response. For more complex planning questions, it
+can use Tree-of-Thought reasoning to compare several possible study plans before
+selecting a recommendation.
+
+The main safety and reliability risks include hallucinated information, incorrect
+interpretation of assignment requirements, unsupported recommendations, outdated
+information, overconfidence, and poor prioritization. The agent could also make an
+incorrect recommendation when retrieved evidence is incomplete, ambiguous, or
+contradictory. These risks are important because a learner could rely on incorrect
+information when making decisions about assignments, deadlines, or study priorities.
+
+Safety Guardrails
+
+I would use several guardrails to constrain and monitor the agent. First, input
+validation would determine whether the request is within the study assistant's intended
+scope and whether enough information is available to answer safely. Second, RAG
+retrieval would ground factual answers in available course materials instead of relying
+only on the language model's internal knowledge.
+
+Before an answer is presented, important factual claims would be checked against
+retrieved evidence. If the evidence is missing, contradictory, or too weak, the agent
+would state its uncertainty, ask for clarification, or escalate instead of inventing an
+answer. Tool access would also be restricted. The agent could retrieve, analyze, and
+recommend, but it would not automatically submit assignments, modify course records,
+send messages, or perform other high-impact actions. Runtime logging would track
+retrieval results, confidence levels, decisions, errors, and escalation events.
+
+Evaluation Metrics
+
+I would evaluate the agent using the following metrics:
+- Correctness: percentage of answers that accurately reflect the available course information.
+- Groundedness: percentage of important claims supported by retrieved evidence.
+- Hallucination rate: frequency of unsupported or fabricated claims.
+- Calibration: whether the agent's confidence level matches its actual accuracy.
+- Escalation accuracy: whether uncertain or risky cases are correctly routed to human review.
+- Fallback success rate: how often the system safely asks for clarification or defers when it cannot provide a reliable answer.
+- Latency: whether the system provides useful responses within an acceptable amount of time.
+
+Human Intervention Criteria
+
+Human intervention would be required when the agent has low confidence, cannot retrieve
+sufficient evidence, finds contradictory sources, or receives an ambiguous request that
+could lead to a significantly different recommendation depending on interpretation.
+Human review would also be triggered when an important deadline, assignment requirement,
+prerequisite, or course policy cannot be verified. If different Tree-of-Thought reasoning
+branches produce similarly strong but conflicting recommendations, the system should
+present the alternatives and request human judgment rather than selecting one with false
+confidence. Any proposed high-impact action, such as submitting work, changing records,
+or communicating externally on the learner's behalf, would require explicit human
+approval.
+
+Overall Safety Strategy and Design Rationale
+
+The guardrails, evaluation metrics, and human intervention process work together as
+layers of protection. Guardrails reduce unsafe behavior before an answer is produced.
+Evaluation metrics show whether the system is actually performing reliably over time.
+Human intervention provides a final control for uncertain, unusual, or higher-risk
+situations.
+
+The main design trade-off is between autonomy and reliability. More autonomy improves
+efficiency and reduces the amount of manual work required from the learner, but it also
+increases the risk that an incorrect decision will be made without review. Requiring
+human approval for every response would improve oversight but would make the system slow
+and reduce the benefit of using an autonomous agent. My design therefore uses
+confidence-based autonomy. Routine, low-risk, well-grounded requests can be handled
+automatically. Low-confidence, ambiguous, conflicting, or high-impact situations are
+escalated for human review. This balances autonomy, reliability, efficiency, and
+oversight.
+
+Overall, this approach makes the Personal AI Study Workflow Assistant safer and more
+dependable for real-world use. The system does not assume that a confident AI response is
+necessarily correct. Instead, important recommendations must be grounded in evidence,
+evaluated, monitored, and escalated when necessary.

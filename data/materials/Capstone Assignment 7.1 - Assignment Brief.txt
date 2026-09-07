@@ -1,0 +1,71 @@
+Required Capstone Assignment 7.1: Final Capstone Project Report and Presentation - Section C
+Due: Monday by 9:29am | Points: 1 | Available after Aug 28 at 6am
+Submitting: a file upload
+
+Learning outcomes addressed
+1. Integrate agent components developed throughout the program into a cohesive autonomous
+   system.
+2. Present an integrated autonomous agent system and its evaluation results to a technical
+   audience.
+
+This final capstone assignment is your opportunity to bring together the work you have
+developed throughout the program into a complete, cohesive autonomous system. Across
+Modules 1 through 6, you defined the problem, refined the agent design, incorporated
+reasoning and memory, added retrieval and coordination strategies, and introduced
+guardrails, evaluation, and human oversight. In this final assignment, you will synthesize
+those decisions into a polished report and a recorded presentation for a technical audience.
+
+You will submit two required deliverables:
+1. A final capstone report using the template provided in Self-Study Capstone Checkpoint
+   Assignment 7.1: Final Capstone Planning.
+2. A presentation using the software of your choice, and a recorded 8-10 minute presentation
+   video to accompany the report.
+3. You may also choose to submit an optional 90-second elevator pitch recording (not graded,
+   but used by Learning Facilitators to select a showcase for Professor Amir Farimani).
+
+Directions
+
+1. Final capstone report
+Your final report should present a clear, well-organized account of your project, including:
+- The problem your system addresses and the intended user
+- The goal and scope of the system
+- The final architecture and major components
+- How the design evolved across the program
+- An overview of the implementation
+- Evaluation methods and results
+- Safety, reliability, and human oversight considerations
+- Current limitations and future improvements
+- A link to your public GitHub repository
+
+Your public GitHub repository should be included in the report and enable a technical
+audience to understand and review your project. At a minimum, the repository should include:
+- A README that explains the project, architecture, setup, and usage
+- The main code or notebooks
+- Any supporting materials you want to share, such as sample inputs, outputs, or evaluation
+  artifacts
+- Clear instructions for running or reviewing the project
+
+2. Final presentation and recorded video
+Create a presentation and record an 8-10 minute presentation video, designed for a technical
+audience, clearly explaining:
+- The problem and why it matters
+- The goal of your autonomous system
+- The architecture and major components
+- The key design decisions made across the program
+- The evaluation approach and the most important results
+- The public GitHub repository and what it contains
+- The main strengths, limitations, and next steps for the system
+
+3. Record and submit your video
+Record your required 8-10 minute video and host it on an accessible platform (YouTube,
+Vimeo, or Loom), ideally unlisted/private-share so your instructor and Learning Facilitator
+can view it. Submit the video link in a document that also includes a two-to-three-sentence
+summary of your presentation, uploaded to Canvas together with your final report.
+
+Optional deliverable: a 90-second elevator pitch recording, clearly labeled as optional,
+covering the problem, the agentic AI system designed, the value of the solution, and the
+most important takeaway.
+
+Submission instructions
+Suggested word count for the final report: 1000-1500 words.
+Suggested presentation length: 8-10 slides for a 10-minute presentation.

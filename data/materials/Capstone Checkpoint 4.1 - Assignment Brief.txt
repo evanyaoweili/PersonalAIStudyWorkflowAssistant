@@ -1,0 +1,55 @@
+Required Capstone Checkpoint 4.1: Tree-of-Thought Integration Plan - Section C
+Due: Aug 17 by 9:29am | Points: 1 | Available after Aug 7 at 6am
+Submitting: a text entry box or a file upload | File Types: pdf and docx
+
+Learning outcome addressed
+3. Integrate Tree-of-Thought reasoning using CrewAI, LangChain, and MCP into the capstone
+   agent design.
+
+In this module, you moved from linear reasoning to structured exploration. You learned how
+ToT reasoning improves accuracy by generating multiple candidate reasoning paths, evaluating
+intermediate states, and pruning weak branches. You also began mapping ToT roles to
+implementation tools, including CrewAI, LangChain, and MCP.
+
+This checkpoint focuses on design considerations rather than full implementation. You will
+update your capstone proposal to include a ToT reasoning approach or an alternative
+reasoning approach, identify the agent roles required to support structured reasoning, and
+map those roles to tools you will use in later modules. The goal is to make your reasoning
+architecture explicit and testable.
+
+Directions
+
+In a short written submission, complete Item 1. Then complete either Item 2 or Item 3,
+depending on whether your project uses Tree of Thought (ToT) reasoning.
+
+1. Decide whether ToT reasoning is appropriate for your agent. (Required)
+   a. Explain whether ToT reasoning would improve your capstone design or hinder it.
+
+2. If ToT is appropriate for your project, complete the following sections:
+   1. Identify where ToT reasoning will be used within your capstone architecture.
+      a. Describe the part of your workflow where ToT reasoning will be used.
+      b. Explain why a linear chain of thought may fail in this area due to premature
+         commitment, high branching, or constraint complexity.
+   2. Define your ToT structure.
+      a. Specify how reasoning will be represented as a tree: what a "thought" represents,
+         what constitutes a node/branch/depth, the expected branching factor and depth
+         limit, and when the system terminates and selects a final output.
+   3. Describe your search and evaluation strategy.
+      a. Choose one primary search strategy (BFS, DFS, beam search, or Monte Carlo-style
+         sampling) and explain why it fits your use case.
+      b. Explain how candidate branches will be assessed: evaluation criteria/rubric, who
+         performs the evaluation, pruning thresholds and failure conditions, how ties are
+         resolved, and how the strategy is constrained by compute, latency, or cost.
+   4. Map ToT roles to implementation tools (at minimum: thought generator, critic/evaluator,
+      decision maker/controller, memory/state manager), identifying which of CrewAI,
+      LangChain, or MCP supports each role and why.
+   5. Identify one risk (e.g. branch explosion, weak evaluation signals, overexploitation,
+      inconsistent state management) and one mitigation strategy.
+
+3. If ToT is not appropriate for your project, complete the following sections:
+   1. Explain why ToT is not appropriate for your project as an intentional design decision.
+   2. Identify the reasoning approach that best fits your project and briefly explain why it
+      supports your agent's goal more effectively than ToT.
+
+Submission instructions
+Suggested word count: 750-1100 words.

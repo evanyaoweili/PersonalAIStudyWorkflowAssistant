@@ -7,7 +7,7 @@ venv/
 
 # Vector store / ingested data
 data/chroma/
-data/materials/*
+
 !data/materials/.gitkeep
 
 # Runtime guardrail/audit log
